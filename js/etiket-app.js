@@ -1,5 +1,6 @@
 /**
  * NutriLabel RS Pro - Aplikasi Utama Etiket Makan & Pemindai Verifikasi QR
+ * Versi Revisi: WebRTC Live Camera Scanner, Audio Beep, Nordic Slate Aesthetics, Ekspor PDF & CSV
  */
 
 // State Aplikasi
@@ -9,7 +10,13 @@ let auditLogs = [];
 let currentVerificationResult = null;
 let activeTab = 'create'; // 'create' | 'scanner' | 'audit'
 
-// Database Demo Menu Rumah Sakit untuk Simulasi Nampan Dapur
+// State Pemindai Kamera Nyata (WebRTC)
+let activeVideoStream = null;
+let isScanningActive = false;
+let currentFacingMode = 'environment'; // 'environment' (belakang) atau 'user' (depan)
+let barcodeDetector = null;
+
+// Database Menu Rumah Sakit untuk Verifikasi Nampan
 const HOSPITAL_MENU_DATABASE = [
   {
     id: 'MENU-01',
@@ -27,7 +34,7 @@ const HOSPITAL_MENU_DATABASE = [
   },
   {
     id: 'MENU-03',
-    nama: 'Paket Biasa (Tekstur Keras): Nasi Putih Pulen + Ayam Goreng Lengkuas + Sambal Goreng Udang',
+    nama: 'Paket Biasa (Tekstur Keras): Nasi Putih Pulen + Ayam Goreng Lengkuas + Sambal Udang',
     tekstur: 'Biasa',
     bahan: ['Beras', 'Daging Ayam', 'Udang', 'Minyak Goreng', 'Cabai', 'Bawang'],
     waktuMakan: 'Siang'
@@ -46,7 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStoredOrders();
   loadStoredAuditLogs();
   initFormListeners();
+  initBarcodeDetector();
   renderOrdersList();
+  renderPatientsTable();
   renderAuditLogs();
 
   // Jika belum ada pesanan sama sekali, isi dengan data awal
@@ -61,6 +70,19 @@ document.addEventListener('DOMContentLoaded', () => {
     window.lucide.createIcons();
   }
 });
+
+/**
+ * Inisialisasi API BarcodeDetector jika didukung peramban
+ */
+function initBarcodeDetector() {
+  if ('BarcodeDetector' in window) {
+    try {
+      barcodeDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'ean_13'] });
+    } catch (e) {
+      barcodeDetector = null;
+    }
+  }
+}
 
 /**
  * Muat pesanan dari LocalStorage
@@ -87,7 +109,7 @@ function loadStoredAuditLogs() {
 }
 
 /**
- * Seed pesanan awal berdasarkan contoh dokumen spesifikasi
+ * Data awal etiket pasien
  */
 function seedInitialOrders() {
   const seed = [
@@ -148,7 +170,9 @@ function seedInitialOrders() {
   activeOrders = seed;
   saveOrdersToStorage();
   renderOrdersList();
+  renderPatientsTable();
   selectOrderForPreview(seed[0].id);
+  showToast('Data demo pasien berhasil dimuat ulang!');
 }
 
 function saveOrdersToStorage() {
@@ -157,51 +181,6 @@ function saveOrdersToStorage() {
 
 function saveAuditLogsToStorage() {
   localStorage.setItem('nutrilabel_audit_log', JSON.stringify(auditLogs));
-}
-
-/**
- * Sinkronisasi cepat dari pasien Asuhan Gizi NutriKlinis yang tersimpan
- */
-function importFromNutriKlinis() {
-  try {
-    const raw = localStorage.getItem('nutriklinis_patients');
-    const patients = raw ? JSON.parse(raw) : [];
-    if (patients.length === 0) {
-      alert('Belum ada pasien tersimpan di modul Asuhan Gizi. Silakan input pasien di NutriKlinis terlebih dahulu.');
-      return;
-    }
-
-    let addedCount = 0;
-    patients.forEach(p => {
-      const orderId = `ORD-${p.noRm ? p.noRm.replace(/[^a-zA-Z0-9]/g, '') : Date.now()}`;
-      if (!activeOrders.some(o => o.id === orderId)) {
-        activeOrders.unshift({
-          id: orderId,
-          noRm: p.noRm || 'RM-BARU',
-          nama: p.nama || 'Pasien Gizi',
-          ruangan: p.ruangan || 'Bangsal Rawat Inap',
-          waktuMakan: 'Siang',
-          tanggal: new Date().toISOString().split('T')[0],
-          jenisDiet: p.preskripsi?.jenisDiet || 'Diet Standar RS',
-          tekstur: p.preskripsi?.bentukMakanan?.includes('Lunak') ? 'Lunak' :
-                   p.preskripsi?.bentukMakanan?.includes('Saring') ? 'Saring' :
-                   p.preskripsi?.bentukMakanan?.includes('Cair') ? 'Cair' : 'Biasa',
-          alergi: p.riwayatMakan?.pantanganAlergi || 'Tidak ada',
-          pantangan: p.riwayatMakan?.polaMakan?.length > 0 ? p.riwayatMakan.polaMakan.join(', ') : 'Sesuai diet medis',
-          catatan: p.preskripsi?.catatanKhusus || 'Asuhan Gizi Terstandar'
-        });
-        addedCount++;
-      }
-    });
-
-    saveOrdersToStorage();
-    renderOrdersList();
-    if (activeOrders.length > 0) selectOrderForPreview(activeOrders[0].id);
-    showToast(`Berhasil menarik ${addedCount} data pasien dari Asuhan Gizi NutriKlinis!`);
-  } catch (e) {
-    console.error(e);
-    alert('Terjadi kesalahan saat menarik data pasien.');
-  }
 }
 
 /**
@@ -217,7 +196,7 @@ function initFormListeners() {
   }
 
   // Input listener untuk live preview
-  const liveInputs = ['orderNama', 'orderNoRm', 'orderRuang', 'orderWaktu', 'orderDiet', 'orderTekstur', 'orderAlergi', 'orderPantangan'];
+  const liveInputs = ['orderNama', 'orderNoRm', 'orderRuang', 'orderWaktu', 'orderDiet', 'orderTekstur'];
   liveInputs.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -254,6 +233,7 @@ function saveOrderFromForm() {
     tanggal: getVal('orderTanggal') || new Date().toISOString().split('T')[0],
     jenisDiet: getVal('orderDiet'),
     tekstur: getVal('orderTekstur'),
+    // Alergi dan Pantangan disimpan sebagai catatan klinis internal, BUKAN untuk QR atau stiker fisik
     alergi: getVal('orderAlergi'),
     pantangan: getVal('orderPantangan'),
     catatan: getVal('orderCatatan')
@@ -265,11 +245,12 @@ function saveOrderFromForm() {
     showToast('Instruksi etiket berhasil diperbarui!');
   } else {
     activeOrders.unshift(orderData);
-    showToast('Etiket makan baru berhasil dibuat!');
+    showToast('Etiket makan baru berhasil disimpan!');
   }
 
   saveOrdersToStorage();
   renderOrdersList();
+  renderPatientsTable();
   selectOrderForPreview(id);
   resetOrderForm();
 }
@@ -283,7 +264,7 @@ function resetOrderForm() {
 }
 
 /**
- * Render daftar antrean etiket di sidebar / tabel
+ * Render daftar antrean etiket di sidebar
  */
 function renderOrdersList() {
   const container = document.getElementById('ordersListContainer');
@@ -302,23 +283,26 @@ function renderOrdersList() {
 
   container.innerHTML = activeOrders.map(o => {
     const isSelected = o.id === currentSelectedOrderId;
-    const hasAllergy = o.alergi && !o.alergi.toLowerCase().includes('tidak') && !o.alergi.includes('-');
 
     return `
-      <div onclick="selectOrderForPreview('${o.id}')" class="p-3 rounded-xl border cursor-pointer transition ${isSelected ? 'bg-white border-[#1B5E4B] shadow-sm ring-1 ring-[#1B5E4B]/20' : 'bg-slate-50/70 border-slate-200 hover:bg-white'}">
+      <div onclick="selectOrderForPreview('${o.id}')" class="p-3 rounded-xl border cursor-pointer transition ${
+        isSelected 
+          ? 'bg-white border-[#0F172A] shadow-xs ring-1 ring-[#0F172A]/15' 
+          : 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-slate-300'
+      }">
         <div class="flex items-start justify-between gap-2 mb-1">
           <div>
             <h4 class="text-xs font-bold text-slate-900 leading-tight">${o.nama}</h4>
             <span class="text-[10px] font-mono text-slate-500">${o.noRm} • ${o.ruangan}</span>
           </div>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0">
+          <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0">
             ${o.waktuMakan}
           </span>
         </div>
 
-        <div class="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 text-slate-600">
-          <span class="font-medium truncate max-w-[170px] text-[#1B5E4B]">${o.jenisDiet} (${o.tekstur})</span>
-          ${hasAllergy ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200">Alergi: ${o.alergi}</span>` : ''}
+        <div class="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100 text-slate-600">
+          <span class="font-semibold truncate max-w-[200px] text-[#0F172A]">${o.jenisDiet}</span>
+          <span class="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${o.tekstur}</span>
         </div>
       </div>
     `;
@@ -326,7 +310,119 @@ function renderOrdersList() {
 }
 
 /**
+ * Render Tabel Pasien pada Tab Tersendiri ("Daftar Pasien Terdata")
+ */
+function renderPatientsTable() {
+  const container = document.getElementById('patientsTableBody');
+  const countBadge = document.getElementById('patientsCountBadge');
+  if (countBadge) countBadge.textContent = `${activeOrders.length} Pasien`;
+  if (!container) return;
+
+  const searchQuery = (document.getElementById('searchPatientInput')?.value || '').toLowerCase().trim();
+  const filterWaktu = document.getElementById('filterWaktuSelect')?.value || 'all';
+
+  let filtered = activeOrders;
+  if (searchQuery) {
+    filtered = filtered.filter(o => 
+      o.nama.toLowerCase().includes(searchQuery) || 
+      o.noRm.toLowerCase().includes(searchQuery) || 
+      o.ruangan.toLowerCase().includes(searchQuery) ||
+      o.jenisDiet.toLowerCase().includes(searchQuery)
+    );
+  }
+  if (filterWaktu !== 'all') {
+    filtered = filtered.filter(o => o.waktuMakan.toLowerCase() === filterWaktu.toLowerCase());
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="8" class="px-4 py-12 text-center text-xs text-slate-400">
+          <div class="max-w-xs mx-auto space-y-2">
+            <i data-lucide="user-x" class="w-8 h-8 text-slate-300 mx-auto"></i>
+            <p class="font-semibold text-slate-600">Tidak ada data pasien yang cocok.</p>
+            <p class="text-[11px] text-slate-400">Gunakan kata kunci pencarian lain atau buat etiket baru.</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = filtered.map(o => {
+    const isSelected = o.id === currentSelectedOrderId;
+    const qrThumb = window.QRCodeUtil ? window.QRCodeUtil.generateSVG(o.id, { size: 36, padding: 1, color: '#0F172A' }) : '';
+    const hasAllergy = o.alergi && !o.alergi.toLowerCase().includes('tidak') && !o.alergi.includes('-');
+
+    return `
+      <tr class="hover:bg-slate-50/80 border-b border-slate-100 transition text-xs ${isSelected ? 'bg-slate-50/60' : ''}">
+        <td class="px-3.5 py-3 font-mono font-bold text-slate-900">
+          ${o.noRm}
+          <span class="block text-[10px] text-slate-400 font-normal">${o.id}</span>
+        </td>
+        <td class="px-3.5 py-3 font-bold text-slate-900">
+          ${o.nama}
+        </td>
+        <td class="px-3.5 py-3 text-slate-700 font-medium">
+          ${o.ruangan}
+        </td>
+        <td class="px-3.5 py-3 font-mono text-slate-700">
+          <span class="font-bold text-slate-800">${o.waktuMakan}</span>
+          <span class="block text-[10px] text-slate-400">${o.tanggal || '-'}</span>
+        </td>
+        <td class="px-3.5 py-3 font-bold text-slate-900">
+          ${o.jenisDiet}
+          <span class="block text-[10px] text-slate-500 font-medium">${o.tekstur}</span>
+        </td>
+        <td class="px-3.5 py-3 text-[11px] text-slate-600 max-w-[200px]">
+          ${hasAllergy ? `<span class="inline-block text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded mr-1 mb-1">Alergi: ${o.alergi}</span>` : ''}
+          ${o.pantangan ? `<span class="block text-[10px] text-slate-500 truncate" title="${o.pantangan}">Pantangan: ${o.pantangan}</span>` : '<span class="text-slate-400">-</span>'}
+        </td>
+        <td class="px-3.5 py-2 text-center">
+          <div class="w-9 h-9 mx-auto flex items-center justify-center bg-white p-0.5 border border-slate-200 rounded">
+            ${qrThumb}
+          </div>
+        </td>
+        <td class="px-3.5 py-3 text-right whitespace-nowrap space-x-1.5">
+          <button onclick="selectOrderAndSwitchToCreate('${o.id}')" class="px-2.5 py-1 text-[11px] font-bold text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition" title="Buka &amp; Pratinjau Stiker">
+            Buka &amp; Cetak
+          </button>
+          <button onclick="deleteOrderById('${o.id}')" class="px-2 py-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition" title="Hapus Etiket">
+            Hapus
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function selectOrderAndSwitchToCreate(id) {
+  selectOrderForPreview(id);
+  switchAppTab('create');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteOrderById(id) {
+  if (confirm('Yakin ingin menghapus etiket pasien ini?')) {
+    activeOrders = activeOrders.filter(o => o.id !== id);
+    saveOrdersToStorage();
+    renderOrdersList();
+    renderPatientsTable();
+    if (activeOrders.length > 0) {
+      selectOrderForPreview(activeOrders[0].id);
+    } else {
+      resetOrderForm();
+    }
+    showToast('Etiket pasien berhasil dihapus.');
+  }
+}
+
+/**
  * Pilih satu pesanan untuk ditampilkan di kartu pratinjau etiket stiker 80x50mm
+ * (Alergi dan Pantangan TIDAK DITAMPILKAN pada stiker fisik nampan)
  */
 function selectOrderForPreview(id) {
   currentSelectedOrderId = id;
@@ -335,24 +431,22 @@ function selectOrderForPreview(id) {
 
   renderOrdersList();
 
-  // Update pratinjau etiket
+  // Update pratinjau fisik etiket stiker 80x50mm
   document.getElementById('lblNama').textContent = order.nama;
   document.getElementById('lblNoRm').textContent = order.noRm;
   document.getElementById('lblRuang').textContent = order.ruangan;
   document.getElementById('lblWaktu').textContent = `${order.waktuMakan} (${order.tanggal || ''})`;
   document.getElementById('lblDiet').textContent = order.jenisDiet;
   document.getElementById('lblTekstur').textContent = order.tekstur;
-  document.getElementById('lblAlergi').textContent = order.alergi || 'Tidak ada catatan alergi';
-  document.getElementById('lblPantangan').textContent = order.pantangan || '-';
   document.getElementById('lblOrderId').textContent = order.id;
 
-  // Generate QR Code SVG Vektor Bersih
+  // Generate QR Code: murni berisi kode pesanan unik (tanpa data pribadi/alergi)
   const qrContainer = document.getElementById('lblQrCodeContainer');
   if (qrContainer && window.QRCodeUtil) {
-    qrContainer.innerHTML = window.QRCodeUtil.generateSVG(order.id, { size: 110, padding: 2, color: '#10392E' });
+    qrContainer.innerHTML = window.QRCodeUtil.generateSVG(order.id, { size: 110, padding: 2, color: '#0F172A' });
   }
 
-  // Isi juga ke form edit jika ingin diubah
+  // Isi juga ke form edit
   document.getElementById('orderIdHidden').value = order.id;
   document.getElementById('orderNama').value = order.nama;
   document.getElementById('orderNoRm').value = order.noRm;
@@ -361,8 +455,8 @@ function selectOrderForPreview(id) {
   document.getElementById('orderTanggal').value = order.tanggal;
   document.getElementById('orderDiet').value = order.jenisDiet;
   document.getElementById('orderTekstur').value = order.tekstur;
-  document.getElementById('orderAlergi').value = order.alergi;
-  document.getElementById('orderPantangan').value = order.pantangan;
+  document.getElementById('orderAlergi').value = order.alergi || '';
+  document.getElementById('orderPantangan').value = order.pantangan || '';
   document.getElementById('orderCatatan').value = order.catatan || '';
   document.getElementById('formTitle').textContent = `Ubah Etiket: ${order.nama}`;
 }
@@ -378,8 +472,6 @@ function updateLivePreviewFromForm() {
   document.getElementById('lblWaktu').textContent = getVal('orderWaktu', 'Siang');
   document.getElementById('lblDiet').textContent = getVal('orderDiet', 'Diet Standar RS');
   document.getElementById('lblTekstur').textContent = getVal('orderTekstur', 'Biasa');
-  document.getElementById('lblAlergi').textContent = getVal('orderAlergi', 'Tidak ada');
-  document.getElementById('lblPantangan').textContent = getVal('orderPantangan', 'Tidak ada');
 }
 
 /**
@@ -401,11 +493,11 @@ function deleteCurrentSelectedOrder() {
 }
 
 /**
- * Cetak Stiker Nampan Tunggal (Thermal Printer 80x50mm)
+ * Cetak Stiker Nampan Tunggal (Thermal 80x50mm)
  */
 function printSingleSticker() {
   if (!currentSelectedOrderId) {
-    alert('Pilih etiket pasien terlebih dahulu untuk dicetak.');
+    alert('Pilih etiket pasien terlebih dahulu.');
     return;
   }
   document.body.setAttribute('data-print-mode', 'single');
@@ -425,25 +517,23 @@ function printBatchA4() {
   if (!container) return;
 
   container.innerHTML = activeOrders.map(o => {
-    const qrSvg = window.QRCodeUtil.generateSVG(o.id, { size: 70, padding: 1, color: '#16201B' });
-    const hasAllergy = o.alergi && !o.alergi.toLowerCase().includes('tidak') && !o.alergi.includes('-');
+    const qrSvg = window.QRCodeUtil.generateSVG(o.id, { size: 70, padding: 1, color: '#0F172A' });
 
     return `
       <div class="border border-black p-2.5 rounded text-[10px] leading-tight flex justify-between gap-2 h-[45mm] max-h-[45mm] overflow-hidden page-break-inside-avoid">
         <div class="flex flex-col justify-between flex-grow">
           <div>
             <div class="flex items-center justify-between border-b border-black pb-0.5 mb-1 font-bold">
-              <span>RSUP ETIKET GIZI</span>
+              <span>RSUP ETIKET DIET</span>
               <span class="font-mono text-[9px]">${o.waktuMakan}</span>
             </div>
             <p class="text-xs font-extrabold uppercase truncate">${o.nama}</p>
             <p class="font-mono text-[9px]">RM: ${o.noRm} | ${o.ruangan}</p>
-            <p class="font-bold text-[9px] mt-0.5 text-[#1B5E4B]">Diet: ${o.jenisDiet}</p>
+            <p class="font-bold text-[9px] mt-0.5 text-black">Diet: ${o.jenisDiet}</p>
             <p class="font-semibold text-[9px]">Tekstur: ${o.tekstur}</p>
           </div>
           <div>
-            ${hasAllergy ? `<p class="font-extrabold bg-gray-200 px-1 py-0.2 rounded text-[8px] text-red-700">⚠️ ALERGI: ${o.alergi}</p>` : ''}
-            <p class="text-[8px] text-gray-500 font-mono">${o.id}</p>
+            <p class="text-[8px] text-gray-500 font-mono">${o.id} • ${o.tanggal}</p>
           </div>
         </div>
         <div class="flex flex-col items-center justify-center shrink-0 w-[24mm]">
@@ -459,11 +549,279 @@ function printBatchA4() {
 }
 
 /**
- * ==================== MODUL PEMINDAI VERIFIKASI QR (SCANNER) ====================
+ * ==================== EKSPOR CSV & PDF ====================
  */
 
 /**
- * Jalankan pencocokan dengan kode order (dari scanner kamera, barcode reader, atau simulasi)
+ * Ekspor Data Etiket Pasien ke Berkas CSV (Excel-Compatible)
+ */
+function exportOrdersToCSV() {
+  if (activeOrders.length === 0) {
+    alert('Belum ada data etiket untuk diekspor.');
+    return;
+  }
+
+  let csv = '\uFEFFID Pesanan,No Rekam Medis,Nama Pasien,Ruangan,Waktu Makan,Tanggal,Jenis Diet,Tekstur,Catatan Klinis Alergi (Internal),Catatan Pantangan (Internal),Catatan Tambahan\n';
+  activeOrders.forEach(o => {
+    csv += `"${o.id}","${o.noRm}","${o.nama}","${o.ruangan}","${o.waktuMakan}","${o.tanggal}","${o.jenisDiet}","${o.tekstur}","${o.alergi || '-'}","${o.pantangan || '-'}","${o.catatan || '-'}"\n`;
+  });
+
+  downloadCSVFile(csv, `etiket_pasien_${new Date().toISOString().split('T')[0]}.csv`);
+  showToast('Berkas CSV etiket pasien berhasil diunduh!');
+}
+
+/**
+ * Ekspor Data Log Audit Distribusi ke CSV
+ */
+function exportAuditLogsToCSV() {
+  if (auditLogs.length === 0) {
+    alert('Belum ada riwayat audit distribusi untuk diekspor.');
+    return;
+  }
+
+  let csv = '\uFEFFID Log,Waktu Pindai,Nama Pasien,Ruangan,Waktu Makan,Menu Nampan,Status Verifikasi,Petugas Pemeriksa,Catatan Kesesuaian\n';
+  auditLogs.forEach(l => {
+    csv += `"${l.id}","${l.timestamp}","${l.namaPasien}","${l.ruangan}","${l.waktuMakan}","${l.menu}","${l.status}","${l.petugas}","${l.catatan}"\n`;
+  });
+
+  downloadCSVFile(csv, `audit_distribusi_gizi_${new Date().toISOString().split('T')[0]}.csv`);
+  showToast('Berkas CSV log audit berhasil diunduh!');
+}
+
+/**
+ * Ekspor / Cetak Laporan Audit Distribusi ke Format PDF Resmi
+ */
+function exportAuditLogsToPDF() {
+  if (auditLogs.length === 0) {
+    alert('Belum ada riwayat audit untuk dicetak.');
+    return;
+  }
+
+  const container = document.getElementById('auditReportPrintArea');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="border-b-2 border-black pb-3 mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-extrabold uppercase">LAPORAN MUTU AUDIT DISTRIBUSI MAKANAN PASIEN</h2>
+          <p class="text-xs">INSTALASI GIZI RUMAH SAKIT UMUM PUSAT</p>
+          <p class="text-[10px] text-gray-600">Dokumen Rekam Mutu Verifikasi Etiket QR Code &amp; Pencegahan Salah Diet</p>
+        </div>
+        <div class="text-right text-[10px] font-mono">
+          <p>Tgl Cetak: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}</p>
+          <p>Total Data: ${auditLogs.length} Pemeriksaan</p>
+        </div>
+      </div>
+    </div>
+
+    <table class="w-full text-[10px] border-collapse border border-black mb-6">
+      <thead>
+        <tr class="bg-gray-100 border-b border-black text-left">
+          <th class="p-1.5 border-r border-black w-24">Waktu</th>
+          <th class="p-1.5 border-r border-black">Pasien &amp; Ruangan</th>
+          <th class="p-1.5 border-r border-black">Menu Nampan</th>
+          <th class="p-1.5 border-r border-black w-28">Status Sistem</th>
+          <th class="p-1.5 border-r border-black w-24">Petugas</th>
+          <th class="p-1.5">Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${auditLogs.map(l => `
+          <tr class="border-b border-gray-300">
+            <td class="p-1.5 border-r border-gray-300 font-mono">${l.timestamp}</td>
+            <td class="p-1.5 border-r border-gray-300 font-bold">${l.namaPasien}<br><span class="font-normal text-gray-600">${l.ruangan}</span></td>
+            <td class="p-1.5 border-r border-gray-300">${l.menu}</td>
+            <td class="p-1.5 border-r border-gray-300 font-bold ${l.severity === 'success' ? 'text-green-800' : 'text-red-800'}">${l.status}</td>
+            <td class="p-1.5 border-r border-gray-300">${l.petugas}</td>
+            <td class="p-1.5 text-gray-700 italic">${l.catatan}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div class="flex justify-between items-end pt-8 text-[11px]">
+      <div>
+        <p class="text-[10px] text-gray-500">Sistem NutriLabel RS Pro - Laporan Mutu Pelayanan Gizi</p>
+      </div>
+      <div class="text-center w-52">
+        <p class="mb-14">Kepala Ruang / Supervisor Distribusi Gizi,</p>
+        <p class="font-bold underline">( .................................................... )</p>
+      </div>
+    </div>
+  `;
+
+  document.body.setAttribute('data-print-mode', 'audit');
+  window.print();
+}
+
+/**
+ * Utilitas pengunduh string CSV ke file lokal
+ */
+function downloadCSVFile(content, fileName) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * ==================== PEMINDAI KAMERA NYATA (WEBRTC CAMERA SCANNER) ====================
+ */
+
+/**
+ * Mengaktifkan kamera nyata smartphone/laptop petugas
+ */
+async function startRealCameraScanner() {
+  const video = document.getElementById('scannerVideo');
+  const placeholder = document.getElementById('cameraPlaceholder');
+  const statusEl = document.getElementById('cameraStatusText');
+
+  try {
+    if (activeVideoStream) {
+      stopRealCameraScanner();
+    }
+
+    statusEl.textContent = 'Meminta izin kamera peramban...';
+    statusEl.className = 'text-xs text-amber-600 font-semibold';
+
+    const constraints = {
+      video: {
+        facingMode: { ideal: currentFacingMode },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    activeVideoStream = stream;
+    video.srcObject = stream;
+    await video.play();
+
+    placeholder.classList.add('hidden');
+    video.classList.remove('hidden');
+
+    document.getElementById('btnStartCamera').classList.add('hidden');
+    document.getElementById('btnStopCamera').classList.remove('hidden');
+    document.getElementById('btnSwitchCamera').classList.remove('hidden');
+
+    statusEl.textContent = '● Kamera aktif. Arahkan lensa ke QR Code etiket nampan.';
+    statusEl.className = 'text-xs text-emerald-700 font-semibold flex items-center justify-center gap-1.5';
+
+    isScanningActive = true;
+    requestAnimationFrame(scanVideoFrameLoop);
+  } catch (err) {
+    console.error('Camera access error:', err);
+    placeholder.classList.remove('hidden');
+    video.classList.add('hidden');
+    statusEl.textContent = 'Izin kamera belum diberikan atau perangkat tidak memiliki kamera. Silakan izinkan akses kamera di pengaturan peramban Anda, atau gunakan kolom kode manual di bawah.';
+    statusEl.className = 'text-xs text-rose-700 font-semibold';
+  }
+}
+
+/**
+ * Menghentikan stream kamera
+ */
+function stopRealCameraScanner() {
+  isScanningActive = false;
+  if (activeVideoStream) {
+    activeVideoStream.getTracks().forEach(track => track.stop());
+    activeVideoStream = null;
+  }
+
+  const video = document.getElementById('scannerVideo');
+  const placeholder = document.getElementById('cameraPlaceholder');
+  const statusEl = document.getElementById('cameraStatusText');
+
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+    video.classList.add('hidden');
+  }
+  if (placeholder) placeholder.classList.remove('hidden');
+
+  document.getElementById('btnStartCamera')?.classList.remove('hidden');
+  document.getElementById('btnStopCamera')?.classList.add('hidden');
+  document.getElementById('btnSwitchCamera')?.classList.add('hidden');
+
+  if (statusEl) {
+    statusEl.textContent = 'Kamera tidak aktif. Klik tombol di bawah untuk menyalakan pemindai.';
+    statusEl.className = 'text-xs text-slate-500 font-medium';
+  }
+}
+
+/**
+ * Mengganti kamera depan / belakang
+ */
+function switchCamera() {
+  currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+  startRealCameraScanner();
+}
+
+/**
+ * Loop analisis frame video untuk mendeteksi barcode/QR
+ */
+async function scanVideoFrameLoop() {
+  if (!isScanningActive || !activeVideoStream) return;
+
+  const video = document.getElementById('scannerVideo');
+  if (video && video.readyState >= video.HAVE_CURRENT_DATA) {
+    try {
+      if (barcodeDetector) {
+        const barcodes = await barcodeDetector.detect(video);
+        if (barcodes.length > 0) {
+          const detectedCode = barcodes[0].rawValue;
+          if (detectedCode) {
+            playBeepSound();
+            runScannerWithCode(detectedCode);
+            // Jeda sejenak agar tidak memicu scan berulang kali dalam 1 detik
+            setTimeout(() => {
+              if (isScanningActive) requestAnimationFrame(scanVideoFrameLoop);
+            }, 1800);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      // Loop berlanjut bila frame kosong
+    }
+  }
+
+  if (isScanningActive) {
+    requestAnimationFrame(scanVideoFrameLoop);
+  }
+}
+
+/**
+ * Suara bip audio halus via Web Audio API saat barcode terdeteksi
+ */
+function playBeepSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // 880 Hz crisp medical tone
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.16);
+  } catch (e) {}
+}
+
+/**
+ * Jalankan pencocokan dengan kode order (dari kamera, barcode gun, atau tombol simulasi)
  */
 function runScannerWithCode(orderId, chosenMenuIndex = 0) {
   const order = activeOrders.find(o => o.id.toLowerCase() === orderId.toLowerCase() || o.noRm.toLowerCase() === orderId.toLowerCase());
@@ -501,14 +859,14 @@ function renderVerificationModal(v) {
   const isDanger = v.result.status === 'HOLD_DANGER';
 
   card.className = `max-w-lg w-full bg-white rounded-3xl p-6 shadow-2xl border-2 transition-all transform duration-200 ${
-    isApproved ? 'border-emerald-500' : isDanger ? 'border-rose-600' : 'border-amber-500'
+    isApproved ? 'border-emerald-600' : isDanger ? 'border-rose-600' : 'border-amber-500'
   }`;
 
   card.innerHTML = `
     <!-- Header Status -->
     <div class="flex items-center gap-3 pb-4 border-b border-slate-100 mb-4">
       <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-        isApproved ? 'bg-emerald-100 text-emerald-700' : isDanger ? 'bg-rose-100 text-rose-700 animate-pulse' : 'bg-amber-100 text-amber-700'
+        isApproved ? 'bg-emerald-50 text-emerald-700' : isDanger ? 'bg-rose-50 text-rose-700 animate-pulse' : 'bg-amber-50 text-amber-700'
       }">
         <i data-lucide="${isApproved ? 'check-circle-2' : isDanger ? 'shield-alert' : 'alert-triangle'}" class="w-7 h-7"></i>
       </div>
@@ -535,19 +893,19 @@ function renderVerificationModal(v) {
         </div>
         <div class="flex justify-between text-slate-500">
           <span>Instruksi Diet:</span>
-          <span class="font-bold text-[#1B5E4B]">${v.order ? `${v.order.jenisDiet} (${v.order.tekstur})` : '-'}</span>
+          <span class="font-bold text-slate-900">${v.order ? `${v.order.jenisDiet} (${v.order.tekstur})` : '-'}</span>
         </div>
         <div class="flex justify-between text-slate-500">
-          <span>Catatan Alergi:</span>
+          <span>Catatan Klinis Alergi (Internal):</span>
           <span class="font-bold text-rose-700">${v.order?.alergi || 'Tidak ada'}</span>
         </div>
       </div>
 
       <!-- Menu Nampan yang Diperiksa -->
-      <div class="p-3.5 bg-[#F6F7F4] rounded-2xl border border-[#E2E7E1] space-y-1">
+      <div class="p-3.5 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0] space-y-1">
         <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Menu Makanan di Nampan:</span>
-        <p class="font-extrabold text-slate-800 text-xs">${v.trayData.menuNama}</p>
-        <p class="text-[11px] text-slate-500">Bahan/Komposisi: ${v.trayData.bahan.join(', ')}</p>
+        <p class="font-extrabold text-slate-900 text-xs">${v.trayData.menuNama}</p>
+        <p class="text-[11px] text-slate-500">Komposisi Bahan: ${v.trayData.bahan.join(', ')}</p>
       </div>
 
       <!-- Daftar Isu / Peringatan Sistem -->
@@ -577,12 +935,12 @@ function renderVerificationModal(v) {
       </button>
 
       ${isApproved ? `
-        <button onclick="confirmDistributionDelivery()" class="px-5 py-2.5 text-xs font-bold text-white bg-[#1B5E4B] hover:bg-[#144839] rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5">
-          <i data-lucide="check" class="w-4 h-4"></i> Konfirmasi Serahkan ke Pasien
+        <button onclick="confirmDistributionDelivery()" class="px-5 py-2.5 text-xs font-bold text-white bg-[#0F172A] hover:bg-[#1E293B] rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1.5">
+          <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Konfirmasi Serahkan ke Pasien
         </button>
       ` : `
-        <button onclick="recordHoldIncident()" class="px-5 py-2.5 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5">
-          <i data-lucide="lock" class="w-4 h-4"></i> Tahan & Catat Insiden Gizi
+        <button onclick="recordHoldIncident()" class="px-5 py-2.5 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1.5">
+          <i data-lucide="lock" class="w-4 h-4"></i> Tahan &amp; Catat Insiden Gizi
         </button>
       `}
     </div>
@@ -665,7 +1023,7 @@ function recordHoldIncident() {
 function renderAuditLogs() {
   const container = document.getElementById('auditLogsTableBody');
   const countBadge = document.getElementById('auditCountBadge');
-  if (countBadge) countBadge.textContent = `${auditLogs.length} Aktivitas`;
+  if (countBadge) countBadge.textContent = `${auditLogs.length} Pemeriksaan`;
   if (!container) return;
 
   if (auditLogs.length === 0) {
@@ -688,14 +1046,14 @@ function renderAuditLogs() {
         <td class="px-3.5 py-3 text-slate-600">${l.ruangan}</td>
         <td class="px-3.5 py-3 text-slate-600 max-w-[200px] truncate">${l.menu}</td>
         <td class="px-3.5 py-3">
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
             isSuccess ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
           }">
             <span class="w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
             ${l.status}
           </span>
         </td>
-        <td class="px-3.5 py-3 text-slate-500 font-medium">${l.petugas}</td>
+        <td class="px-3.5 py-3 text-slate-600 font-medium">${l.petugas}</td>
         <td class="px-3.5 py-3 text-[11px] text-slate-500 italic max-w-[220px] truncate" title="${l.catatan}">${l.catatan}</td>
       </tr>
     `;
@@ -716,7 +1074,12 @@ function clearAuditLogs() {
  */
 function switchAppTab(tab) {
   activeTab = tab;
-  ['create', 'scanner', 'audit'].forEach(t => {
+  // Jika berpindah keluar dari scanner, matikan kamera agar baterai dan privasi terjaga
+  if (tab !== 'scanner' && isScanningActive) {
+    stopRealCameraScanner();
+  }
+
+  ['create', 'patients', 'scanner', 'audit'].forEach(t => {
     const section = document.getElementById(`tab-section-${t}`);
     const btn = document.getElementById(`nav-btn-${t}`);
     if (section) {
@@ -728,12 +1091,16 @@ function switchAppTab(tab) {
     }
     if (btn) {
       if (t === tab) {
-        btn.className = 'tab-btn active px-4 py-2.5 text-xs font-bold border-b-2 border-[#1B5E4B] text-[#1B5E4B] flex items-center gap-2 transition';
+        btn.className = 'tab-btn active px-4 py-2.5 text-xs font-bold border-b-2 border-[#0F172A] text-[#0F172A] flex items-center gap-2 transition';
       } else {
         btn.className = 'tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition';
       }
     }
   });
+
+  if (tab === 'patients') {
+    renderPatientsTable();
+  }
 }
 
 /**

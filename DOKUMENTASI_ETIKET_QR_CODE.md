@@ -18,19 +18,25 @@ Dalam tata kelola instalasi gizi rumah sakit, kesalahan penyajian makanan (seper
 
 ---
 
-## 2. Struktur Informasi pada Etiket Makan
+## 2. Struktur Informasi & Pemisahan Tab Aplikasi
 
-Etiket makan dicetak dengan tata letak ringkas dan jelas yang mudah dibaca oleh mata petugas sekaligus dilengkapi kode QR presisi:
+Aplikasi memiliki **4 Tab Mandiri** dengan pemisahan tugas yang tegas:
+1. **Tab 1: Buat & Cetak Etiket Nampan:**
+   - Kolom Kiri: Form Input Identitas Pasien, Ruangan, Waktu Makan, Jenis Diet, dan Catatan Klinis Internal Petugas.
+   - Kolom Kanan: Pratinjau Fisik Etiket Stiker $80\text{ mm} \times 50\text{ mm}$ dan Tombol Aksi Cetak Tunggal / Ekspor CSV.
+   - *(Daftar antrean pasien tidak lagi menumpuk di bawah form, melainkan dipindahkan ke Tab 2)*.
+2. **Tab 2: Daftar Pasien Terdata:**
+   - Database lengkap pasien rawat inap yang telah terdata.
+   - Dilengkapi bilah pencarian cerdas (Nama, No. RM, Ruangan, Diet) dan filter waktu makan.
+   - Tabel menampilkan: No. RM & ID, Nama Pasien, Ruangan/Bed, Waktu & Tanggal, Diet & Tekstur, Catatan Klinis Alergi, Thumbnail QR SVG, serta Aksi *Buka & Cetak* dan *Hapus*.
+3. **Tab 3: Scan Barcode ("Scan disini"):**
+   - Pemindai kamera WebRTC nyata dengan dialog izin kamera (*camera permission prompt*), switch kamera, dan input manual barcode USB.
+4. **Tab 4: Log Audit Distribusi:**
+   - Rekam jejak audit trail digital verifikasi nampan dengan tombol *Ekspor PDF* (laporan resmi RS) dan *Unduh CSV*.
 
-| Komponen Etiket | Keterangan & Format Data |
-| :--- | :--- |
-| **Identitas Pasien** | Nama lengkap pasien (misal: `Tn. Andi Prasetyo`) dan Nomor Rekam Medis (`001234`). |
-| **Lokasi Perawatan** | Bangsal / Ruang Rawat dan Nomor Bed (misal: `Mawar - Bed 03`). |
-| **Waktu Makan** | Jadwal makan (`Pagi`, `Siang`, `Malam`, `Selingan Pagi`, `Selingan Sore`) beserta tanggal distribusi. |
-| **Jenis Diet** | Preskripsi diet aktif (misal: `Diet DM 1700 kkal`, `Diet Rendah Garam II`, `Diet Rendah Protein 40g`). |
-| **Tekstur Makanan** | Bentuk konsistensi sajian: `Biasa`, `Lunak (Bubur)`, `Saring`, atau `Cair (Enteral)`. |
-| **Alergi & Pantangan** | Bahan yang harus dihindari mutlak (misal: `Alergi Telur`, `Alergi Seafood`, `Pantangan Gula Murni`). |
-| **QR Code Unik** | Kode unik pesanan yang aman (*Order Token*), bukan data pribadi mentah, yang tertaut langsung ke status pesanan di sistem. |
+### Kebijakan Privasi Rekam Medis pada Stiker Fisik:
+- **Catatan Alergi & Pantangan** disimpan pada sistem sebagai referensi pencocokan keamanan menu oleh scanner.
+- **TIDAK DICETAK** pada stiker fisik nampan dan **TIDAK DISIMPAN** dalam teks QR code mentah demi menjaga kerahasiaan rekam medis pasien sesuai standar akreditasi rumah sakit (KARS/JCI).
 
 ---
 
@@ -112,12 +118,13 @@ function verifyMealTray(orderData, trayComposition) {
 Untuk memastikan aplikasi terasa seperti perangkat lunak profesional kelas enterprise dan bebas dari estetika sintetis (AI-slop):
 
 ### A. Panduan Warna & Tipografi (`design-taste-frontend`)
-- **Tanpa Gradien Ungu/Neon:** Tidak menggunakan aksen gradien neon yang lazim dibuat oleh generator AI generik.
-- **Palet Higienis Klinis:**
-  - Canvas Latar: `#F6F7F4` (Botanical Warm Ivory).
-  - Kartu & Surface: `#FFFFFF` dengan batas halus `#E2E7E1`.
-  - Aksen Primer: `#1B5E4B` (Deep Pine Sage).
+- **Tanpa Gradien Ungu/Neon/Hijau Template:** Menghindari warna hijau template generik dan gradien AI-slop.
+- **Palet Higienis Klinis (Clinical Nordic Slate & Porcelain):**
+  - Canvas Latar: `#F8FAFC` (Slate Porcelain Pearl).
+  - Kartu & Surface: `#FFFFFF` dengan batas presisi `#E2E8F0`.
+  - Aksen Primer & Tombol: `#0F172A` (Deep Obsidian Slate) dengan efek *tactile press* `scale(0.975)`.
   - Indikator Lolos: Soft Emerald Badge (`bg-[#ECFDF3] text-[#166534] border-[#BBF7D0]`).
+  - Indikator Bahaya: High-Contrast Crimson Rose (`bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3]`).
   - Indikator Bahaya Alergi: Soft Crimson Badge (`bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]`).
 - **Font Tabular:** Menggunakan format angka mono-spasi untuk nomor rekam medis dan jam distribusi agar mudah dibaca sekilas oleh petugas yang bergerak cepat di bangsal.
 
