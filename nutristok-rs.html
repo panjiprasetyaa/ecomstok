@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="id" class="overflow-x-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriStok RS Pro — Manajemen Dapur Gizi Rumah Sakit</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --bg-canvas: #F6F7F4;
+      --bg-sidebar: #EEF1EC;
+      --bg-surface: #FFFFFF;
+      --border-hairline: #DFE5DD;
+      --text-primary: #16201B;
+      --text-muted: #5A6860;
+      --accent: #1B5E4B;
+      --accent-hover: #144839;
+    }
+
+    body {
+      background-color: var(--bg-canvas);
+      color: var(--text-primary);
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .surface-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      box-shadow: 0 1px 2px rgba(22, 32, 27, 0.04);
+    }
+
+    .surface-interactive {
+      transition: transform 180ms var(--ease-out), border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+    }
+    .surface-interactive:hover {
+      transform: translateY(-2px);
+      border-color: #B9C8BE;
+      box-shadow: 0 6px 16px -6px rgba(22, 32, 27, 0.1);
+    }
+
+    button, .pressable {
+      transition: transform 120ms var(--ease-out), background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out), opacity 150ms var(--ease-out);
+    }
+    button:active:not(:disabled), .pressable:active {
+      transform: scale(0.98);
+    }
+
+    .img-zoom {
+      transition: transform 240ms var(--ease-out);
+    }
+    .group:hover .img-zoom {
+      transform: scale(1.04);
+    }
+
+    @keyframes viewEnter {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .view-enter {
+      animation: viewEnter 200ms var(--ease-out) forwards;
+    }
+
+    dialog {
+      background: transparent;
+      color: inherit;
+      margin: auto;
+      padding: 0;
+      border: none;
+      max-width: 100%;
+    }
+    dialog::backdrop {
+      background: rgba(22, 32, 27, 0.45);
+      backdrop-filter: blur(3px);
+    }
+    dialog[open] {
+      animation: dialogIn 180ms var(--ease-out) forwards;
+    }
+    @keyframes dialogIn {
+      from { opacity: 0; transform: scale(0.96) translateY(4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: #DDE3DC;
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #1B5E4B;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+      transition: transform 140ms var(--ease-out);
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #F6F7F4; }
+    ::-webkit-scrollbar-thumb { background: #C8D1C9; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A69A; }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #FFFFFF !important; color: #16201B !important; }
+      .app-shell { display: block !important; }
+      .surface-card, .print-border {
+        background: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        box-shadow: none !important;
+      }
+      .print-only { display: block !important; }
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] font-sans antialiased selection:bg-[#1B5E4B] selection:text-white overflow-x-hidden">
+
+  <div class="app-shell min-h-[100dvh] grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
+
+    <!-- SIDEBAR NAVIGASI -->
+    <aside class="bg-[#EEF1EC] border-b lg:border-b-0 lg:border-r border-[#DFE5DD] flex flex-col justify-between no-print lg:sticky lg:top-0 lg:h-[100dvh]">
+      <div class="p-4 sm:p-5 space-y-6">
+        <!-- Brand Header dengan Logo 1: MedLeaf Bowl -->
+        <div class="flex items-center justify-between gap-3">
+          <button type="button" onclick="switchTab('inventory')" class="flex items-center gap-3 text-left">
+            <div class="w-10 h-10 rounded-lg bg-[#E4ECE7] border border-[#D1DDD5] flex items-center justify-center shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1B5E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 12h16a8 8 0 0 1-16 0Z"/>
+                <path d="M12 12c0-4 2.5-7 6-7 0 3.5-2.5 7-6 7Z"/>
+                <path d="M9 12c-1-2.5-3-4-5-4"/>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-base font-bold text-[#16201B] tracking-tight leading-none">NutriStok <span class="text-[#1B5E4B]">RS Pro</span></h1>
+              <p class="text-xs text-[#5A6860] mt-1 font-medium">Instalasi Gizi Klinis</p>
+            </div>
+          </button>
+
+          <button type="button" onclick="toggleMobileNav()" class="lg:hidden p-2 rounded-lg bg-white text-[#16201B] border border-[#DFE5DD] hover:bg-[#F6F7F4]" aria-label="Buka Menu Navigasi">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div id="sidebarNavWrap" class="hidden lg:block space-y-6">
+          <!-- Workspace Navigation -->
+          <nav class="space-y-1" aria-label="Navigasi Utama">
+            <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-[#5A6860] mb-2">Workspace</p>
+
+            <button onclick="switchTab('inventory')" id="tab-btn-inventory" class="tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold bg-white text-[#16201B] border border-[#DFE5DD] shadow-xs">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="boxes" class="w-4 h-4 text-[#1B5E4B]"></i> Inventaris &amp; Gudang
+              </span>
+              <span id="navStockBadge" class="text-xs font-mono tabular-nums px-1.5 py-0.5 rounded bg-[#E7F0EC] text-[#1B5E4B]">0</span>
+            </button>
+
+            <button onclick="switchTab('po')" id="tab-btn-po" class="tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i> PO Pengadaan
+              </span>
+              <span id="navPoBadge" class="text-xs font-mono tabular-nums px-1.5 py-0.5 rounded bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]">0</span>
+            </button>
+
+            <button onclick="switchTab('masak')" id="tab-btn-masak" class="tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="chef-hat" class="w-4 h-4"></i> Kalkulator Porsi
+              </span>
+              <span id="navRecipeBadge" class="text-xs font-mono tabular-nums text-[#5A6860]">3</span>
+            </button>
+
+            <button onclick="switchTab('log')" id="tab-btn-log" class="tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent">
+              <span class="flex items-center gap-2.5">
+                <i data-lucide="history" class="w-4 h-4"></i> Audit Mutasi
+              </span>
+              <span id="logCountBadge" class="text-xs font-mono tabular-nums px-1.5 py-0.5 rounded bg-[#E2E7E1] text-[#16201B]">0</span>
+            </button>
+
+          </nav>
+
+          <!-- Filter Zona Gudang -->
+          <div class="space-y-1">
+            <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-[#5A6860] mb-2">Zona Penyimpanan</p>
+            <div id="sidebarWarehouseList" class="space-y-0.5"></div>
+          </div>
+
+          <!-- Indeks Kesehatan Stok -->
+          <div class="bg-white rounded-xl p-4 border border-[#DFE5DD] space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-[#16201B]">Indeks Stok Sehat</span>
+              <span id="sidebarHealthPct" class="text-xs font-mono font-bold tabular-nums text-[#1B5E4B]">0%</span>
+            </div>
+            <div class="w-full h-2 bg-[#EEF1EC] rounded-full overflow-hidden">
+              <div id="sidebarHealthBar" class="h-full bg-[#1B5E4B] rounded-full transition-all duration-200" style="width: 0%"></div>
+            </div>
+            <p id="sidebarHealthNote" class="text-xs text-[#5A6860] leading-snug">Memantau rasio stok aman.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Footer Utilities -->
+      <div class="hidden lg:flex flex-col gap-2.5 p-4 border-t border-[#DFE5DD]">
+        <div class="flex items-center justify-between text-xs text-[#5A6860] px-1">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-[#166534]"></span> Operasional Aktif
+          </span>
+          <span id="liveClock" class="font-mono tabular-nums text-[#16201B]">--:--</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="window.print()" class="bg-white hover:bg-[#F6F7F4] text-[#16201B] text-xs font-semibold py-2 px-3 rounded-lg border border-[#D5DDD8] flex items-center justify-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-[#5A6860]"></i> Cetak
+          </button>
+          <button onclick="requestResetDemo()" class="bg-white hover:bg-[#FEF2F2] hover:text-[#B91C1C] hover:border-[#FECACA] text-[#5A6860] text-xs font-semibold py-2 px-3 rounded-lg border border-[#D5DDD8] flex items-center justify-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- KOLOM WORKSPACE UTAMA -->
+    <div class="flex flex-col min-w-0">
+
+      <!-- TOP COMMAND BAR -->
+      <header class="bg-[#F6F7F4]/95 backdrop-blur-sm border-b border-[#DFE5DD] sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <h2 id="pageTitle" class="text-base sm:text-lg font-bold text-[#16201B] truncate">Inventaris Stok &amp; Gudang</h2>
+            <p id="pageSubtitle" class="text-xs text-[#5A6860] truncate hidden sm:block">Pengawasan stok bahan makanan, suhu gudang, dan prioritas FIFO.</p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="index.html" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#ECFDF3] hover:bg-[#DCFCE7] border border-[#BBF7D0] text-[#166534] text-xs font-semibold transition" title="Buka Asuhan Gizi Klinis Pasien">
+              <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
+              <span>Asuhan Gizi (e-PAGT)</span>
+            </a>
+
+            <button id="fifoAlertPill" type="button" onclick="switchTab('po')" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFBEB] hover:bg-[#FEF3C7] border border-[#FDE68A] text-[#B45309] text-xs font-semibold">
+              <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+              <span id="fifoAlertText">0 Item PO</span>
+            </button>
+
+            <button type="button" onclick="openReceiveDialog()" class="bg-[#1B5E4B] hover:bg-[#144839] text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-xs">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Terima Bahan</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- AREA KONTEN -->
+      <main class="max-w-7xl w-full min-w-0 mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 space-y-6">
+
+        <!-- ========================================================= -->
+        <!-- TAB 1: INVENTARIS STOK & GUDANG                           -->
+        <!-- ========================================================= -->
+        <section id="tab-inventory" class="tab-content space-y-6 view-enter min-w-0">
+
+          <!-- 4 KPI CARDS BERSIH (TANPA KOTAK GLOW IKON) -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 no-print">
+            <div class="surface-card rounded-xl p-4 sm:p-5 space-y-1.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 text-[#5A6860]">
+                <span class="text-xs font-medium truncate">Total Item Bahan</span>
+                <i data-lucide="package" class="w-4 h-4 shrink-0 stroke-[1.75]"></i>
+              </div>
+              <p id="statTotalItems" class="text-2xl sm:text-3xl font-bold text-[#16201B] tabular-nums font-mono">0</p>
+              <p class="text-xs text-[#5A6860] truncate">Semua zona gudang</p>
+            </div>
+
+            <div class="surface-card rounded-xl p-4 sm:p-5 space-y-1.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 text-[#5A6860]">
+                <span class="text-xs font-medium truncate">Stok Aman</span>
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-[#166534] shrink-0 stroke-[1.75]"></i>
+              </div>
+              <p id="statAman" class="text-2xl sm:text-3xl font-bold text-[#166534] tabular-nums font-mono">0</p>
+              <p class="text-xs text-[#5A6860] truncate">Di atas batas min</p>
+            </div>
+
+            <div class="surface-card rounded-xl p-4 sm:p-5 space-y-1.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 text-[#5A6860]">
+                <span class="text-xs font-medium truncate">Perlu Restok</span>
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-[#B45309] shrink-0 stroke-[1.75]"></i>
+              </div>
+              <p id="statKritis" class="text-2xl sm:text-3xl font-bold text-[#B45309] tabular-nums font-mono">0</p>
+              <p class="text-xs text-[#5A6860] truncate">Stok &le; batas min</p>
+            </div>
+
+            <div class="surface-card rounded-xl p-4 sm:p-5 space-y-1.5 min-w-0">
+              <div class="flex items-center justify-between gap-2 text-[#5A6860]">
+                <span class="text-xs font-medium truncate">Hampir Expired</span>
+                <i data-lucide="clock" class="w-4 h-4 text-[#B91C1C] shrink-0 stroke-[1.75]"></i>
+              </div>
+              <p id="statExpired" class="text-2xl sm:text-3xl font-bold text-[#B91C1C] tabular-nums font-mono">0</p>
+              <p class="text-xs text-[#5A6860] truncate">ED &le; 3 hari</p>
+            </div>
+          </div>
+
+          <!-- 12-COL GRID: ZONA PENYIMPANAN & PRIORITAS FIFO -->
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 no-print">
+            <div class="xl:col-span-8 surface-card rounded-xl p-5 space-y-4 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <h3 class="text-sm font-bold text-[#16201B]">Zona Penyimpanan &amp; Suhu Gudang</h3>
+                  <p class="text-xs text-[#5A6860]">Klik zona untuk menyaring daftar bahan di bawah</p>
+                </div>
+                <button onclick="selectWarehouseFilter('semua')" id="btnResetWarehouse" class="hidden text-xs font-semibold text-[#1B5E4B] hover:underline">
+                  Tampilkan Semua
+                </button>
+              </div>
+              <div id="warehouseCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5"></div>
+            </div>
+
+            <div class="xl:col-span-4 surface-card rounded-xl overflow-hidden flex flex-col justify-between min-w-0">
+              <div class="relative h-32 overflow-hidden bg-[#EEF1EC]">
+                <img src="assets/hero-kitchen.jpg" alt="Dapur Gizi Rumah Sakit" onerror="this.src=FALLBACK_SVG.kitchen" class="w-full h-full object-cover">
+                <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#16201B]/85 to-transparent"></div>
+                <div class="absolute bottom-2.5 left-3.5 right-3.5 flex items-center justify-between">
+                  <span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-white/95 text-[#16201B]">Prioritas FIFO</span>
+                  <span class="text-xs font-mono text-white bg-[#16201B]/80 px-2 py-0.5 rounded">Chiller 2.4°C</span>
+                </div>
+              </div>
+              <div id="fifoSpotlightBody" class="p-4 flex-1 flex flex-col justify-between gap-3"></div>
+            </div>
+          </div>
+
+          <!-- MASTER STOK BAHAN DAPUR -->
+          <div class="surface-card rounded-xl p-4 sm:p-6 print-border space-y-4 min-w-0">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
+              <div>
+                <h3 class="text-base font-bold text-[#16201B]">Master Stok Bahan Dapur RS</h3>
+                <p class="text-xs text-[#5A6860]">Klik foto atau nama bahan untuk detail batch dan penyesuaian cepat</p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="relative w-full sm:w-auto">
+                  <i data-lucide="search" class="w-4 h-4 text-[#5A6860] absolute left-3 top-2.5"></i>
+                  <input type="text" id="searchBar" onkeyup="renderInventoryTable()" placeholder="Cari bahan atau kode..." class="bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg pl-9 pr-3 py-2 text-xs text-[#16201B] placeholder-[#5A6860] focus:outline-none focus:border-[#1B5E4B] w-full sm:w-48">
+                </div>
+
+                <select id="filterKategori" onchange="renderInventoryTable()" class="bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-xs text-[#16201B] focus:outline-none focus:border-[#1B5E4B]">
+                  <option value="semua">Semua Gudang</option>
+                  <option value="Basah/Segar">Gudang Basah</option>
+                  <option value="Sayur/Buah">Sayur &amp; Buah</option>
+                  <option value="Kering">Gudang Kering</option>
+                  <option value="Bumbu">Gudang Bumbu</option>
+                </select>
+
+                <select id="csvDelimiter" title="Pemisah Kolom CSV" class="bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs text-[#16201B] focus:outline-none focus:border-[#1B5E4B]">
+                  <option value=";">Excel ID (;)</option>
+                  <option value=",">Standar (,)</option>
+                </select>
+
+                <button type="button" onclick="exportCsv('inventory')" class="bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8] rounded-lg px-3 py-2 text-xs font-semibold flex items-center gap-1.5">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#1B5E4B]"></i> Ekspor CSV
+                </button>
+
+                <div class="inline-flex bg-[#EEF1EC] p-0.5 rounded-lg border border-[#DFE5DD]">
+                  <button onclick="setInventoryView('table')" id="viewBtnTable" class="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 bg-white text-[#16201B] border border-[#D5DDD8] shadow-xs">
+                    <i data-lucide="table-2" class="w-3.5 h-3.5"></i> Tabel
+                  </button>
+                  <button onclick="setInventoryView('grid')" id="viewBtnGrid" class="px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 text-[#5A6860] hover:text-[#16201B] border border-transparent">
+                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> Galeri
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div id="inventoryTableWrap" class="overflow-x-auto rounded-lg border border-[#DFE5DD]">
+              <table class="w-full text-left text-sm text-[#16201B]">
+                <thead class="bg-[#F6F7F4] text-[#5A6860] uppercase text-xs font-semibold tracking-wider border-b border-[#DFE5DD]">
+                  <tr>
+                    <th class="px-4 py-3">Kode</th>
+                    <th class="px-4 py-3">Bahan Makanan</th>
+                    <th class="px-4 py-3">Gudang</th>
+                    <th class="px-4 py-3">Sisa Stok</th>
+                    <th class="px-4 py-3">Kedaluwarsa</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right no-print">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableInventoryBody" class="divide-y divide-[#EAEEE8] bg-white"></tbody>
+              </table>
+            </div>
+
+            <div id="inventoryGridWrap" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 2: PO PENGADAAN OTOMATIS                              -->
+        <!-- ========================================================= -->
+        <section id="tab-po" class="tab-content hidden space-y-6 view-enter min-w-0">
+
+          <!-- Header & Metadata Surat PO -->
+          <div class="surface-card rounded-xl p-5 sm:p-6 space-y-5 print-border">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#DFE5DD] pb-4">
+              <div>
+                <h3 class="text-base font-bold text-[#16201B]">Daftar Belanja &amp; PO Pengadaan Otomatis</h3>
+                <p class="text-xs text-[#5A6860]">Otomatis merangkum bahan dengan stok &le; batas minimal atau ED &le; 3 hari untuk diajukan ke vendor</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 no-print">
+                <button type="button" onclick="copyPoText()" class="bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5">
+                  <i data-lucide="copy" class="w-3.5 h-3.5 text-[#5A6860]"></i> Salin Teks PO
+                </button>
+                <button type="button" onclick="exportCsv('po')" class="bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#1B5E4B]"></i> Ekspor PO (CSV)
+                </button>
+                <button type="button" onclick="window.print()" class="bg-[#1B5E4B] hover:bg-[#144839] text-white rounded-lg px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5">
+                  <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak Surat PO
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label for="poVendorInput" class="block text-xs font-semibold text-[#16201B] mb-1.5">Vendor / Pemasok Tujuan</label>
+                <input type="text" id="poVendorInput" value="Koperasi Pangan Sehat RS" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-xs text-[#16201B] focus:outline-none focus:border-[#1B5E4B]">
+              </div>
+              <div>
+                <label for="poDateInput" class="block text-xs font-semibold text-[#16201B] mb-1.5">Target Kirim</label>
+                <input type="date" id="poDateInput" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-xs text-[#16201B] focus:outline-none focus:border-[#1B5E4B]">
+              </div>
+              <div>
+                <label for="poNoteInput" class="block text-xs font-semibold text-[#16201B] mb-1.5">Catatan Pengadaan</label>
+                <input type="text" id="poNoteInput" value="Pengiriman maksimal pukul 06.30 WIB (uji kesegaran FIFO)" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-xs text-[#16201B] focus:outline-none focus:border-[#1B5E4B]">
+              </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-[#DFE5DD]">
+              <table class="w-full text-left text-sm text-[#16201B]">
+                <thead class="bg-[#F6F7F4] text-[#5A6860] uppercase text-xs font-semibold tracking-wider border-b border-[#DFE5DD]">
+                  <tr>
+                    <th class="px-4 py-3">Kode</th>
+                    <th class="px-4 py-3">Bahan Makanan</th>
+                    <th class="px-4 py-3">Gudang</th>
+                    <th class="px-4 py-3">Sisa / Min</th>
+                    <th class="px-4 py-3">Alasan Pengadaan</th>
+                    <th class="px-4 py-3">Jumlah Order Disarankan</th>
+                  </tr>
+                </thead>
+                <tbody id="tablePoBody" class="divide-y divide-[#EAEEE8] bg-white"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 3: KALKULATOR PORSI & RESEP KUSTOM                    -->
+        <!-- ========================================================= -->
+        <section id="tab-masak" class="tab-content hidden space-y-6 view-enter min-w-0">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Kolom Kiri (7 cols): Pilihan Menu + Resep Kustom + Breakdown Bahan -->
+            <div class="lg:col-span-7 space-y-5 min-w-0">
+              <div class="surface-card rounded-xl p-5 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 class="text-base font-bold text-[#16201B]">Paket Menu Pasien RS</h3>
+                    <p class="text-xs text-[#5A6860]">Pilih paket menu bawaan atau tambahkan resep baru sesuai kebutuhan diet</p>
+                  </div>
+                  <button type="button" onclick="openRecipeDialog()" class="bg-[#1B5E4B] hover:bg-[#144839] text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Resep Kustom
+                  </button>
+                </div>
+
+                <div id="menuCardsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+              </div>
+
+              <div class="surface-card rounded-xl p-5 space-y-4">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-bold text-[#16201B] flex items-center gap-2">
+                    <i data-lucide="list-checks" class="w-4 h-4 text-[#1B5E4B]"></i>
+                    Kebutuhan Gramasi Bahan (<span id="portionLabelText" class="text-[#1B5E4B] font-mono">50 Porsi</span>)
+                  </h3>
+                </div>
+                <div id="recipeBreakdown" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+              </div>
+            </div>
+
+            <!-- Kolom Kanan (5 cols): Panel Produksi Dapur Sticky -->
+            <div class="lg:col-span-5 surface-card rounded-xl overflow-hidden lg:sticky lg:top-24 min-w-0">
+              <div class="relative h-36 overflow-hidden bg-[#EEF1EC]">
+                <img src="assets/banner-hospital-meal.jpg" alt="Perencanaan Diet Pasien" onerror="this.src=FALLBACK_SVG.meal" class="w-full h-full object-cover">
+                <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#16201B]/80 to-transparent"></div>
+                <div class="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+                  <span class="text-xs font-semibold px-2.5 py-0.5 rounded bg-white/95 text-[#16201B]">Panel Produksi Dapur</span>
+                </div>
+              </div>
+
+              <div class="p-5 space-y-4">
+                <div>
+                  <label for="recipeSelect" class="block text-xs font-semibold text-[#16201B] mb-1.5">Menu Terpilih</label>
+                  <select id="recipeSelect" onchange="syncMenuSelection(this.value)" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none"></select>
+                </div>
+
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label for="portionCount" class="text-xs font-semibold text-[#16201B]">Jumlah Porsi Pasien</label>
+                    <div class="flex items-center gap-1">
+                      <button type="button" onclick="setPortions(25)" class="px-2 py-1 rounded bg-[#EEF1EC] hover:bg-[#DCE5DF] text-xs font-mono font-semibold text-[#16201B]">25</button>
+                      <button type="button" onclick="setPortions(50)" class="px-2 py-1 rounded bg-[#EEF1EC] hover:bg-[#DCE5DF] text-xs font-mono font-semibold text-[#16201B]">50</button>
+                      <button type="button" onclick="setPortions(100)" class="px-2 py-1 rounded bg-[#EEF1EC] hover:bg-[#DCE5DF] text-xs font-mono font-semibold text-[#16201B]">100</button>
+                      <button type="button" onclick="setPortions(150)" class="px-2 py-1 rounded bg-[#EEF1EC] hover:bg-[#DCE5DF] text-xs font-mono font-semibold text-[#16201B]">150</button>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <input type="range" id="portionSlider" min="1" max="250" value="50" oninput="setPortions(this.value)" class="flex-1">
+                    <input type="number" id="portionCount" value="50" min="1" oninput="syncPortionInput(this.value)" class="w-20 bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-sm font-mono font-bold tabular-nums text-[#1B5E4B] text-center focus:border-[#1B5E4B] focus:outline-none">
+                  </div>
+                </div>
+
+                <div id="nutritionSummaryBox" class="bg-[#F6F7F4] rounded-lg p-3 border border-[#DFE5DD] grid grid-cols-3 gap-2 text-center"></div>
+
+                <button type="button" onclick="executeRecipeUsage()" class="w-full bg-[#1B5E4B] hover:bg-[#144839] text-white font-semibold py-2.5 px-4 rounded-lg text-sm flex items-center justify-center gap-2">
+                  <i data-lucide="flame" class="w-4 h-4"></i> Eksekusi Masak &amp; Potong Stok
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- TAB 4: AUDIT TRAIL MUTASI                                 -->
+        <!-- ========================================================= -->
+        <section id="tab-log" class="tab-content hidden space-y-5 view-enter min-w-0">
+          <div class="surface-card rounded-xl p-4 sm:p-6 space-y-4 min-w-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 class="text-base font-bold text-[#16201B]">Riwayat Audit Mutasi Stok</h3>
+                <p class="text-xs text-[#5A6860]">Catatan masuk dan keluar bahan dapur untuk pelaporan instalasi gizi</p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="exportCsv('logs')" class="bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8] rounded-lg px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-[#1B5E4B]"></i> Ekspor Audit CSV
+                </button>
+                <div class="inline-flex bg-[#EEF1EC] p-0.5 rounded-lg border border-[#DFE5DD]">
+                  <button onclick="setLogFilter('ALL')" id="logFilterAll" class="px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-[#16201B] border border-[#D5DDD8] shadow-xs">Semua</button>
+                  <button onclick="setLogFilter('MASUK')" id="logFilterMasuk" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[#5A6860] hover:text-[#16201B] border border-transparent">Masuk</button>
+                  <button onclick="setLogFilter('KELUAR')" id="logFilterKeluar" class="px-3 py-1.5 rounded-md text-xs font-semibold text-[#5A6860] hover:text-[#16201B] border border-transparent">Keluar</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-lg border border-[#DFE5DD]">
+              <table class="w-full text-left text-sm text-[#16201B]">
+                <thead class="bg-[#F6F7F4] text-[#5A6860] uppercase text-xs font-semibold tracking-wider border-b border-[#DFE5DD]">
+                  <tr>
+                    <th class="px-4 py-3">Waktu</th>
+                    <th class="px-4 py-3">Bahan Makanan</th>
+                    <th class="px-4 py-3">Mutasi</th>
+                    <th class="px-4 py-3">Jumlah</th>
+                    <th class="px-4 py-3">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="tableLogBody" class="divide-y divide-[#EAEEE8] bg-white"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- NATIVE <dialog>: TERIMA BAHAN BARU -->
+  <dialog id="receiveDialog" class="w-full max-w-xl p-4 no-print">
+    <div class="surface-card rounded-xl overflow-hidden shadow-xl">
+      <div class="p-5 border-b border-[#DFE5DD] flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img id="formPreviewImg" src="assets/cat-basah.jpg" alt="Preview Kategori" onerror="this.src=FALLBACK_SVG.meat" class="w-11 h-11 rounded-lg object-cover border border-[#DFE5DD]">
+          <div>
+            <h3 class="text-base font-bold text-[#16201B]">Penerimaan Bahan Makanan (Batch FIFO)</h3>
+            <p id="formPreviewLabel" class="text-xs text-[#1B5E4B] font-medium">Gudang Basah</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeReceiveDialog()" class="p-2 rounded-lg text-[#5A6860] hover:text-[#16201B] hover:bg-[#EEF1EC]" aria-label="Tutup">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="formPenerimaan" class="p-5 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label for="inputNama" class="block text-xs font-semibold text-[#16201B] mb-1.5">Nama Bahan Makanan</label>
+            <input type="text" id="inputNama" oninput="updateFormPreview()" placeholder="Misal: Fillet Daging Sapi Segar" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+
+          <div>
+            <label for="inputKategori" class="block text-xs font-semibold text-[#16201B] mb-1.5">Gudang / Kategori</label>
+            <select id="inputKategori" onchange="updateFormPreview()" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+              <option value="Basah/Segar">Gudang Basah (Daging/Ikan)</option>
+              <option value="Sayur/Buah">Sayur &amp; Buah</option>
+              <option value="Kering">Gudang Kering (Beras/Sembako)</option>
+              <option value="Bumbu">Gudang Bumbu &amp; Olahan</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="inputED" class="block text-xs font-semibold text-[#16201B] mb-1.5">Tanggal Kadaluarsa (ED)</label>
+            <input type="date" id="inputED" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+
+          <div>
+            <label for="inputJumlah" class="block text-xs font-semibold text-[#16201B] mb-1.5">Jumlah Masuk</label>
+            <input type="number" id="inputJumlah" step="0.1" min="0.1" placeholder="Contoh: 10" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-sm font-mono text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+
+          <div>
+            <label for="inputSatuan" class="block text-xs font-semibold text-[#16201B] mb-1.5">Satuan</label>
+            <select id="inputSatuan" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3.5 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+              <option value="Kg">Kg</option>
+              <option value="Liter">Liter</option>
+              <option value="Pack">Pack</option>
+              <option value="Pcs">Pcs</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeReceiveDialog()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8]">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#1B5E4B] hover:bg-[#144839] text-white flex items-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4"></i> Simpan ke Gudang
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- NATIVE <dialog>: TAMBAH MENU / RESEP KUSTOM -->
+  <dialog id="recipeDialog" class="w-full max-w-2xl p-4 no-print">
+    <div class="surface-card rounded-xl overflow-hidden shadow-xl">
+      <div class="p-5 border-b border-[#DFE5DD] flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-bold text-[#16201B]">Tambah Menu / Resep Kustom Pasien</h3>
+          <p class="text-xs text-[#5A6860]">Resep akan tersimpan lokal dan otomatis memotong stok bahan saat dimasak</p>
+        </div>
+        <button type="button" onclick="closeRecipeDialog()" class="p-2 rounded-lg text-[#5A6860] hover:text-[#16201B] hover:bg-[#EEF1EC]" aria-label="Tutup">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form id="formResepKustom" class="p-5 space-y-4 max-h-[80dvh] overflow-y-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label for="recName" class="block text-xs font-semibold text-[#16201B] mb-1">Nama Menu Diet</label>
+            <input type="text" id="recName" placeholder="Misal: Tim Ikan Dori Rendah Garam" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+          <div>
+            <label for="recPatientClass" class="block text-xs font-semibold text-[#16201B] mb-1">Klasifikasi Pasien</label>
+            <input type="text" id="recPatientClass" placeholder="Misal: Diet Rendah Garam / TKTP" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+          <div>
+            <label for="recImage" class="block text-xs font-semibold text-[#16201B] mb-1">Foto Hidangan</label>
+            <select id="recImage" class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+              <option value="assets/menu-sop-ayam.jpg">Foto Sop Ayam Bening</option>
+              <option value="assets/menu-semur-daging.jpg">Foto Olahan Daging &amp; Sayur</option>
+              <option value="assets/menu-bubur-saring.jpg">Foto Bubur Halus</option>
+              <option value="assets/cat-sayur.jpg">Foto Sayuran Segar</option>
+              <option value="assets/banner-hospital-meal.jpg">Foto Menu Gizi Klinik</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label for="recKcal" class="block text-xs font-semibold text-[#16201B] mb-1">Kalori</label>
+              <input type="number" id="recKcal" value="380" min="50" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs font-mono text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+            </div>
+            <div>
+              <label for="recProtein" class="block text-xs font-semibold text-[#16201B] mb-1">Protein (g)</label>
+              <input type="number" id="recProtein" value="22" min="1" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs font-mono text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+            </div>
+            <div>
+              <label for="recFiber" class="block text-xs font-semibold text-[#16201B] mb-1">Serat (g)</label>
+              <input type="number" id="recFiber" value="5" min="0" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs font-mono text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+            </div>
+          </div>
+          <div class="sm:col-span-2">
+            <label for="recDesc" class="block text-xs font-semibold text-[#16201B] mb-1">Deskripsi Singkat</label>
+            <input type="text" id="recDesc" placeholder="Catatan gizi atau tekstur menu per porsi" required class="w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-3 py-2 text-sm text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+          </div>
+        </div>
+
+        <div class="border-t border-[#DFE5DD] pt-4 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-[#16201B]">Komposisi Bahan per 1 Porsi</span>
+            <button type="button" onclick="addRecipeIngredientRow()" class="text-xs font-semibold text-[#1B5E4B] hover:underline flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Baris Bahan
+            </button>
+          </div>
+          <div id="customIngredientsList" class="space-y-2"></div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2 border-t border-[#DFE5DD]">
+          <button type="button" onclick="closeRecipeDialog()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8]">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#1B5E4B] hover:bg-[#144839] text-white flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i> Simpan Resep
+          </button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- NATIVE <dialog>: DETAIL BAHAN & KOREKSI CEPAT -->
+  <dialog id="itemDialog" class="w-full max-w-md p-4 no-print">
+    <div class="surface-card rounded-xl overflow-hidden shadow-xl">
+      <div class="relative h-48 overflow-hidden bg-[#EEF1EC]">
+        <img id="modalItemImg" src="assets/cat-basah.jpg" alt="Foto Bahan" class="w-full h-full object-cover">
+        <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#16201B]/85 to-transparent"></div>
+        <button type="button" onclick="closeItemModal()" class="absolute top-3 right-3 p-1.5 rounded-lg bg-white/90 text-[#16201B] hover:bg-white border border-[#DFE5DD]" aria-label="Tutup">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+        <div class="absolute bottom-3 left-4 right-4">
+          <span id="modalItemId" class="text-xs font-mono bg-white/95 text-[#16201B] px-2 py-0.5 rounded">BHN-001</span>
+          <h3 id="modalItemName" class="text-base font-bold text-white mt-1">Nama Bahan</h3>
+        </div>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="grid grid-cols-3 gap-2.5 text-center">
+          <div class="bg-[#F6F7F4] p-2.5 rounded-lg border border-[#DFE5DD]">
+            <p class="text-[11px] text-[#5A6860] font-medium">Gudang</p>
+            <p id="modalItemCat" class="text-xs font-semibold text-[#16201B] mt-0.5">-</p>
+          </div>
+          <div class="bg-[#F6F7F4] p-2.5 rounded-lg border border-[#DFE5DD]">
+            <p class="text-[11px] text-[#5A6860] font-medium">Stok</p>
+            <p id="modalItemQty" class="text-xs font-bold text-[#1B5E4B] font-mono tabular-nums mt-0.5">-</p>
+          </div>
+          <div class="bg-[#F6F7F4] p-2.5 rounded-lg border border-[#DFE5DD]">
+            <p class="text-[11px] text-[#5A6860] font-medium">Kedaluwarsa</p>
+            <p id="modalItemED" class="text-xs font-semibold text-[#16201B] font-mono tabular-nums mt-0.5">-</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="modalBtnMinus" class="flex-1 bg-[#F6F7F4] hover:bg-[#EAEEE8] text-[#16201B] text-xs font-semibold py-2 rounded-lg border border-[#DCE3DE]">- 1</button>
+          <button id="modalBtnPlus1" class="flex-1 bg-white hover:bg-[#F2F5F1] text-[#16201B] text-xs font-semibold py-2 rounded-lg border border-[#D5DDD8]">+ 1</button>
+          <button id="modalBtnPlus5" class="flex-1 bg-[#1B5E4B] hover:bg-[#144839] text-white text-xs font-semibold py-2 rounded-lg">+ 5</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- NATIVE <dialog>: KONFIRMASI -->
+  <dialog id="confirmDialog" class="w-full max-w-sm p-4 no-print">
+    <div class="surface-card rounded-xl p-5 shadow-xl space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="p-2 rounded-lg bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA] shrink-0">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 id="confirmTitle" class="text-sm font-bold text-[#16201B]">Konfirmasi Tindakan</h3>
+          <p id="confirmMessage" class="text-xs text-[#5A6860] mt-1 leading-relaxed">Apakah Anda yakin ingin melanjutkan?</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-[#F2F5F1] text-[#16201B] border border-[#D5DDD8]">Batal</button>
+        <button type="button" id="confirmOkBtn" class="px-4 py-2 rounded-lg text-xs font-semibold bg-[#B91C1C] hover:bg-[#991B1B] text-white">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2.5rem)] pointer-events-none no-print"></div>
+
+  <script>
+    const FALLBACK_SVG = {
+      kitchen: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><rect width='800' height='500' fill='#EEF1EC'/><circle cx='400' cy='250' r='110' fill='#1B5E4B' fill-opacity='0.12'/></svg>"),
+      meat: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='#EEF1EC'/><circle cx='200' cy='200' r='90' fill='#B91C1C' fill-opacity='0.14'/></svg>"),
+      veg: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='#EEF1EC'/><circle cx='200' cy='200' r='90' fill='#166534' fill-opacity='0.14'/></svg>"),
+      dry: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='#EEF1EC'/><circle cx='200' cy='200' r='90' fill='#B45309' fill-opacity='0.14'/></svg>"),
+      spice: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'><rect width='400' height='400' fill='#EEF1EC'/><circle cx='200' cy='200' r='90' fill='#1B5E4B' fill-opacity='0.14'/></svg>"),
+      meal: "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><rect width='800' height='500' fill='#EEF1EC'/><circle cx='400' cy='250' r='110' fill='#1B5E4B' fill-opacity='0.14'/></svg>")
+    };
+
+    function getFutureDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
+    let inventory = JSON.parse(localStorage.getItem('nutristok_v4_data')) || [
+      { id: 'BHN-001', name: 'Daging Sapi Fillet Segar', category: 'Basah/Segar', qty: 18.5, minQty: 5, unit: 'Kg', ed: getFutureDate(4) },
+      { id: 'BHN-002', name: 'Daging Ayam Broiler', category: 'Basah/Segar', qty: 25.0, minQty: 10, unit: 'Kg', ed: getFutureDate(2) },
+      { id: 'BHN-003', name: 'Wortel Organik Sop', category: 'Sayur/Buah', qty: 3.5, minQty: 5, unit: 'Kg', ed: getFutureDate(6) },
+      { id: 'BHN-004', name: 'Beras Pulen Sangku', category: 'Kering', qty: 120.0, minQty: 30, unit: 'Kg', ed: getFutureDate(90) },
+      { id: 'BHN-005', name: 'Bawang Putih Halus', category: 'Bumbu', qty: 2.0, minQty: 3, unit: 'Kg', ed: getFutureDate(15) }
+    ];
+
+    let auditLogs = JSON.parse(localStorage.getItem('nutristok_v4_logs')) || [
+      { timestamp: new Date().toLocaleString('id-ID'), name: 'Daging Sapi Fillet Segar', type: 'MASUK', qty: '20.0 Kg', note: 'Penerimaan Supplier Vendor A' },
+      { timestamp: new Date().toLocaleString('id-ID'), name: 'Wortel Organik Sop', type: 'KELUAR', qty: '1.5 Kg', note: 'Pengolahan Makan Siang Pasien' }
+    ];
+
+    const defaultRecipes = {
+      sop_ayam: {
+        name: 'Sop Ayam Gizi Tinggi',
+        patientClass: 'Rawat Inap',
+        kcal: 420,
+        protein: 28,
+        fiber: 6,
+        image: 'assets/menu-sop-ayam.jpg',
+        fallback: FALLBACK_SVG.meal,
+        desc: 'Kaldu ayam bening rendah lemak dengan wortel organik kaya vitamin A.',
+        isCustom: false,
+        ingredients: [
+          { name: 'Daging Ayam Broiler', perPortion: 0.1, unit: 'Kg' },
+          { name: 'Wortel Organik Sop', perPortion: 0.05, unit: 'Kg' },
+          { name: 'Bawang Putih Halus', perPortion: 0.01, unit: 'Kg' }
+        ]
+      },
+      semur_daging: {
+        name: 'Semur Daging Sapi',
+        patientClass: 'VIP / Kelas 1',
+        kcal: 560,
+        protein: 34,
+        fiber: 4,
+        image: 'assets/menu-semur-daging.jpg',
+        fallback: FALLBACK_SVG.meal,
+        desc: 'Daging sapi fillet lembut tinggi zat besi dengan bumbu rempah alami.',
+        isCustom: false,
+        ingredients: [
+          { name: 'Daging Sapi Fillet Segar', perPortion: 0.12, unit: 'Kg' },
+          { name: 'Bawang Putih Halus', perPortion: 0.015, unit: 'Kg' }
+        ]
+      },
+      bubur_saring: {
+        name: 'Bubur Halus & Sayur',
+        patientClass: 'Pasca Operasi',
+        kcal: 340,
+        protein: 14,
+        fiber: 5,
+        image: 'assets/menu-bubur-saring.jpg',
+        fallback: FALLBACK_SVG.meal,
+        desc: 'Tekstur lembut mudah cerna untuk pemulihan saluran pencernaan pasien.',
+        isCustom: false,
+        ingredients: [
+          { name: 'Beras Pulen Sangku', perPortion: 0.08, unit: 'Kg' },
+          { name: 'Wortel Organik Sop', perPortion: 0.03, unit: 'Kg' }
+        ]
+      }
+    };
+
+    let customRecipes = JSON.parse(localStorage.getItem('nutristok_v4_recipes')) || {};
+    function getAllRecipes() {
+      return { ...defaultRecipes, ...customRecipes };
+    }
+
+    const WAREHOUSE_META = [
+      { key: 'Basah/Segar', title: 'Gudang Basah', subtitle: 'Daging & Ayam', temp: '2.0°C', image: 'assets/cat-basah.jpg', fallback: FALLBACK_SVG.meat },
+      { key: 'Sayur/Buah', title: 'Sayur & Buah', subtitle: 'Hasil Segar', temp: '6.5°C', image: 'assets/cat-sayur.jpg', fallback: FALLBACK_SVG.veg },
+      { key: 'Kering', title: 'Gudang Kering', subtitle: 'Beras & Sembako', temp: '22.0°C', image: 'assets/cat-kering.jpg', fallback: FALLBACK_SVG.dry },
+      { key: 'Bumbu', title: 'Gudang Bumbu', subtitle: 'Rempah & Olahan', temp: '19.5°C', image: 'assets/cat-bumbu.jpg', fallback: FALLBACK_SVG.spice }
+    ];
+
+    const PAGE_META = {
+      inventory: { title: 'Inventaris Stok & Gudang', subtitle: 'Pengawasan stok bahan makanan, suhu gudang, dan prioritas FIFO.' },
+      po: { title: 'PO Pengadaan Otomatis', subtitle: 'Daftar belanja otomatis untuk bahan dengan stok rendah atau mendekati kedaluwarsa.' },
+      masak: { title: 'Kalkulator Porsi Pasien', subtitle: 'Hitung gramasi menu klinis, kelola resep kustom, dan potong stok otomatis.' },
+      log: { title: 'Audit Trail Mutasi', subtitle: 'Riwayat transaksi stok masuk dan pemakaian dapur instalasi gizi.' }
+    };
+
+    let currentViewMode = 'table';
+    let currentLogFilter = 'ALL';
+    let poOrderQtyMap = {};
+
+    function getIngredientMedia(name = '', category = 'Basah/Segar') {
+      const n = name.toLowerCase();
+      if (n.includes('ayam')) return { src: 'assets/ing-ayam.jpg', fallback: FALLBACK_SVG.meat };
+      if (n.includes('sapi') || n.includes('daging')) return { src: 'assets/cat-basah.jpg', fallback: FALLBACK_SVG.meat };
+      if (n.includes('wortel')) return { src: 'assets/ing-wortel.jpg', fallback: FALLBACK_SVG.veg };
+      if (n.includes('bawang') || n.includes('bumbu')) return { src: 'assets/cat-bumbu.jpg', fallback: FALLBACK_SVG.spice };
+      if (n.includes('beras') || n.includes('tepung')) return { src: 'assets/cat-kering.jpg', fallback: FALLBACK_SVG.dry };
+      const meta = WAREHOUSE_META.find(w => w.key === category) || WAREHOUSE_META[0];
+      return { src: meta.image, fallback: meta.fallback };
+    }
+
+    function updateClock() {
+      const el = document.getElementById('liveClock');
+      if (el) el.innerText = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+    }
+    setInterval(updateClock, 15000);
+    updateClock();
+
+    function toggleMobileNav() {
+      document.getElementById('sidebarNavWrap').classList.toggle('hidden');
+    }
+
+    function showToast(title, message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const styles = {
+        success: { border: 'border-[#BBF7D0]', iconBg: 'bg-[#ECFDF3] text-[#166534]', icon: 'check-circle-2' },
+        warning: { border: 'border-[#FDE68A]', iconBg: 'bg-[#FFFBEB] text-[#B45309]', icon: 'alert-triangle' },
+        error: { border: 'border-[#FECACA]', iconBg: 'bg-[#FEF2F2] text-[#B91C1C]', icon: 'x-circle' }
+      }[type] || { border: 'border-[#DFE5DD]', iconBg: 'bg-[#EEF1EC] text-[#1B5E4B]', icon: 'info' };
+
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto surface-card ${styles.border} rounded-lg p-3.5 shadow-lg flex items-start gap-3 view-enter`;
+      toast.innerHTML = `
+        <div class="p-1.5 rounded-md ${styles.iconBg} shrink-0">
+          <i data-lucide="${styles.icon}" class="w-4 h-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold text-[#16201B]">${title}</p>
+          <p class="text-xs text-[#5A6860] mt-0.5 leading-snug">${message}</p>
+        </div>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(6px)';
+        toast.style.transition = 'opacity 180ms ease-out, transform 180ms ease-out';
+        setTimeout(() => toast.remove(), 200);
+      }, 3200);
+    }
+
+    function bindDialogBackdrop(dialogId) {
+      const dlg = document.getElementById(dialogId);
+      if (!dlg) return;
+      dlg.addEventListener('click', (e) => {
+        if (e.target === dlg) dlg.close();
+      });
+    }
+    bindDialogBackdrop('receiveDialog');
+    bindDialogBackdrop('recipeDialog');
+    bindDialogBackdrop('itemDialog');
+    bindDialogBackdrop('confirmDialog');
+
+    function openReceiveDialog() {
+      setDefaultDateInput();
+      updateFormPreview();
+      document.getElementById('receiveDialog').showModal();
+      document.getElementById('inputNama').focus();
+    }
+    function closeReceiveDialog() {
+      document.getElementById('receiveDialog').close();
+    }
+
+    function openRecipeDialog() {
+      document.getElementById('formResepKustom').reset();
+      const list = document.getElementById('customIngredientsList');
+      list.innerHTML = '';
+      addRecipeIngredientRow();
+      addRecipeIngredientRow();
+      document.getElementById('recipeDialog').showModal();
+      document.getElementById('recName').focus();
+    }
+    function closeRecipeDialog() {
+      document.getElementById('recipeDialog').close();
+    }
+
+    function addRecipeIngredientRow() {
+      const list = document.getElementById('customIngredientsList');
+      const row = document.createElement('div');
+      row.className = 'grid grid-cols-12 gap-2 items-center rec-ing-row';
+      const optionsHtml = inventory.map(i => `<option value="${i.name}">${i.name} (${i.unit})</option>`).join('');
+      row.innerHTML = `
+        <div class="col-span-6">
+          <select class="rec-ing-name w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+            ${optionsHtml}
+          </select>
+        </div>
+        <div class="col-span-3">
+          <input type="number" step="0.005" min="0.005" value="0.05" placeholder="Qty/porsi" required class="rec-ing-qty w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-2 text-xs font-mono text-[#16201B] focus:border-[#1B5E4B] focus:outline-none">
+        </div>
+        <div class="col-span-2">
+          <select class="rec-ing-unit w-full bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2 py-2 text-xs text-[#16201B]">
+            <option value="Kg">Kg</option>
+            <option value="Liter">Liter</option>
+            <option value="Pack">Pack</option>
+            <option value="Pcs">Pcs</option>
+          </select>
+        </div>
+        <div class="col-span-1 text-right">
+          <button type="button" onclick="this.closest('.rec-ing-row').remove()" class="p-1.5 rounded-lg text-[#5A6860] hover:text-[#B91C1C] hover:bg-[#FEF2F2]" aria-label="Hapus Baris">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      list.appendChild(row);
+      lucide.createIcons();
+    }
+
+    function openItemModal(id) {
+      const item = inventory.find(i => i.id === id);
+      if (!item) return;
+      const media = getIngredientMedia(item.name, item.category);
+      const imgEl = document.getElementById('modalItemImg');
+      imgEl.onerror = () => { imgEl.src = media.fallback; };
+      imgEl.src = media.src;
+
+      document.getElementById('modalItemId').innerText = item.id;
+      document.getElementById('modalItemName').innerText = item.name;
+      document.getElementById('modalItemCat').innerText = item.category;
+      document.getElementById('modalItemQty').innerText = `${item.qty} ${item.unit}`;
+      document.getElementById('modalItemED').innerText = item.ed;
+
+      document.getElementById('modalBtnMinus').onclick = () => { manualAdjust(id, -1); openItemModal(id); };
+      document.getElementById('modalBtnPlus1').onclick = () => { manualAdjust(id, 1); openItemModal(id); };
+      document.getElementById('modalBtnPlus5').onclick = () => { manualAdjust(id, 5); openItemModal(id); };
+
+      const dlg = document.getElementById('itemDialog');
+      if (!dlg.open) dlg.showModal();
+      lucide.createIcons();
+    }
+    function closeItemModal() {
+      document.getElementById('itemDialog').close();
+    }
+
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById('confirmTitle').innerText = title;
+      document.getElementById('confirmMessage').innerText = message;
+      const dlg = document.getElementById('confirmDialog');
+      document.getElementById('confirmOkBtn').onclick = () => {
+        dlg.close();
+        if (onConfirm) onConfirm();
+      };
+      dlg.showModal();
+      lucide.createIcons();
+    }
+    function closeConfirmModal() {
+      document.getElementById('confirmDialog').close();
+    }
+
+    function setDefaultDateInput() {
+      document.getElementById('inputED').value = getFutureDate(7);
+      const poDate = document.getElementById('poDateInput');
+      if (poDate && !poDate.value) poDate.value = getFutureDate(1);
+    }
+
+    function updateFormPreview() {
+      const name = document.getElementById('inputNama').value;
+      const cat = document.getElementById('inputKategori').value;
+      const media = getIngredientMedia(name, cat);
+      const img = document.getElementById('formPreviewImg');
+      img.onerror = () => { img.src = media.fallback; };
+      img.src = media.src;
+      document.getElementById('formPreviewLabel').innerText = cat;
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.className = 'tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent';
+        const icon = btn.querySelector('i');
+        if (icon) icon.classList.remove('text-[#1B5E4B]');
+      });
+
+      const target = document.getElementById(`tab-${tabName}`);
+      if (target) target.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      if (activeBtn) {
+        activeBtn.className = 'tab-btn w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-semibold bg-white text-[#16201B] border border-[#DFE5DD] shadow-xs';
+        const icon = activeBtn.querySelector('i');
+        if (icon) icon.classList.add('text-[#1B5E4B]');
+      }
+
+      if (PAGE_META[tabName]) {
+        document.getElementById('pageTitle').innerText = PAGE_META[tabName].title;
+        document.getElementById('pageSubtitle').innerText = PAGE_META[tabName].subtitle;
+      }
+
+      if (tabName === 'po') renderPoTable();
+      if (tabName === 'masak') {
+        populateRecipeSelect();
+        renderMenuCards();
+        loadRecipeDetails();
+      }
+      if (tabName === 'log') renderLogTable();
+    }
+
+    function setInventoryView(mode) {
+      currentViewMode = mode;
+      const tWrap = document.getElementById('inventoryTableWrap');
+      const gWrap = document.getElementById('inventoryGridWrap');
+      const btnT = document.getElementById('viewBtnTable');
+      const btnG = document.getElementById('viewBtnGrid');
+
+      if (mode === 'grid') {
+        tWrap.classList.add('hidden');
+        gWrap.classList.remove('hidden');
+        btnG.className = 'px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 bg-white text-[#16201B] border border-[#D5DDD8] shadow-xs';
+        btnT.className = 'px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 text-[#5A6860] hover:text-[#16201B] border border-transparent';
+      } else {
+        gWrap.classList.add('hidden');
+        tWrap.classList.remove('hidden');
+        btnT.className = 'px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 bg-white text-[#16201B] border border-[#D5DDD8] shadow-xs';
+        btnG.className = 'px-2.5 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 text-[#5A6860] hover:text-[#16201B] border border-transparent';
+      }
+    }
+
+    function selectWarehouseFilter(catKey) {
+      document.getElementById('filterKategori').value = catKey;
+      switchTab('inventory');
+      renderInventoryTable();
+    }
+
+    function renderWarehouseCards() {
+      const container = document.getElementById('warehouseCardsGrid');
+      const sideList = document.getElementById('sidebarWarehouseList');
+      const selectedCat = document.getElementById('filterKategori').value;
+      const resetBtn = document.getElementById('btnResetWarehouse');
+
+      if (resetBtn) {
+        if (selectedCat === 'semua') resetBtn.classList.add('hidden');
+        else resetBtn.classList.remove('hidden');
+      }
+
+      container.innerHTML = '';
+      sideList.innerHTML = '';
+
+      const allActive = selectedCat === 'semua';
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.onclick = () => selectWarehouseFilter('semua');
+      allBtn.className = `w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium ${allActive ? 'bg-white text-[#16201B] border border-[#DFE5DD] font-semibold' : 'text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent'}`;
+      allBtn.innerHTML = `<span>Semua Zona</span><span class="font-mono tabular-nums">${inventory.length}</span>`;
+      sideList.appendChild(allBtn);
+
+      WAREHOUSE_META.forEach(wh => {
+        const items = inventory.filter(i => i.category === wh.key);
+        const lowCount = items.filter(i => i.qty <= i.minQty).length;
+        const isActive = selectedCat === wh.key;
+
+        const sideBtn = document.createElement('button');
+        sideBtn.type = 'button';
+        sideBtn.onclick = () => selectWarehouseFilter(isActive ? 'semua' : wh.key);
+        sideBtn.className = `w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium ${isActive ? 'bg-white text-[#1B5E4B] border border-[#DFE5DD] font-semibold' : 'text-[#5A6860] hover:text-[#16201B] hover:bg-white/60 border border-transparent'}`;
+        sideBtn.innerHTML = `<span>${wh.title}</span><span class="font-mono tabular-nums">${items.length}</span>`;
+        sideList.appendChild(sideBtn);
+
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.onclick = () => selectWarehouseFilter(isActive ? 'semua' : wh.key);
+        card.className = `surface-interactive group relative rounded-lg overflow-hidden border text-left h-28 ${
+          isActive ? 'border-[#1B5E4B] ring-2 ring-[#1B5E4B]/20' : 'border-[#DFE5DD]'
+        }`;
+        card.innerHTML = `
+          <img src="${wh.image}" alt="${wh.title}" onerror="this.src='${wh.fallback}'" class="img-zoom absolute inset-0 w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#16201B]/90 via-[#16201B]/35 to-transparent"></div>
+          <div class="relative z-10 h-full p-3 flex flex-col justify-between">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-white/95 text-[#16201B]">${wh.temp}</span>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded ${lowCount > 0 ? 'bg-[#FFFBEB] text-[#B45309]' : 'bg-[#ECFDF3] text-[#166534]'}">${items.length} item</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold text-white truncate">${wh.title}</p>
+              <p class="text-xs text-white/80 truncate">${wh.subtitle}</p>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderFifoSpotlight() {
+      const body = document.getElementById('fifoSpotlightBody');
+      if (!body) return;
+      const today = new Date();
+      const sorted = [...inventory].sort((a, b) => new Date(a.ed) - new Date(b.ed));
+      const top = sorted[0];
+
+      if (!top) {
+        body.innerHTML = `<p class="text-xs text-[#5A6860]">Belum ada data bahan di gudang.</p>`;
+        return;
+      }
+
+      const diffDays = Math.ceil((new Date(top.ed) - today) / (1000 * 60 * 60 * 24));
+      const media = getIngredientMedia(top.name, top.category);
+
+      body.innerHTML = `
+        <div class="flex items-center gap-3">
+          <img src="${media.src}" alt="${top.name}" onerror="this.src='${media.fallback}'" class="w-12 h-12 rounded-lg object-cover border border-[#DFE5DD] shrink-0">
+          <div class="min-w-0">
+            <p class="text-xs font-bold text-[#16201B] truncate">${top.name}</p>
+            <p class="text-xs text-[#5A6860] mt-0.5">Sisa <span class="font-mono text-[#16201B] font-semibold">${top.qty} ${top.unit}</span> &bull; ED <span class="font-mono ${diffDays <= 3 ? 'text-[#B91C1C] font-semibold' : 'text-[#16201B]'}">${diffDays}h lagi</span></p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-2 pt-2.5 border-t border-[#EAEEE8]">
+          <button type="button" onclick="openItemModal('${top.id}')" class="text-xs font-semibold text-[#1B5E4B] hover:underline">Lihat Batch</button>
+          <button type="button" onclick="switchTab('masak')" class="text-xs font-semibold bg-[#F6F7F4] hover:bg-[#EAEEE8] text-[#16201B] px-3 py-1.5 rounded-lg border border-[#D5DDD8]">Proses Masak &rarr;</button>
+        </div>
+      `;
+    }
+
+    function getPoItems() {
+      const today = new Date();
+      return inventory
+        .map(item => {
+          const diffDays = Math.ceil((new Date(item.ed) - today) / (1000 * 60 * 60 * 24));
+          const isLow = item.qty <= item.minQty;
+          const isNearExp = diffDays <= 3;
+          if (!isLow && !isNearExp) return null;
+          const defaultOrder = Math.max(item.minQty, parseFloat(((item.minQty * 2) - item.qty).toFixed(1)));
+          const orderQty = poOrderQtyMap[item.id] !== undefined ? poOrderQtyMap[item.id] : defaultOrder;
+          return {
+            ...item,
+            diffDays,
+            isLow,
+            isNearExp,
+            reason: isLow && isNearExp ? 'Stok Kritis & ED Dini' : isLow ? 'Stok di bawah batas minimal' : 'Penggantian batch ED <= 3h',
+            orderQty
+          };
+        })
+        .filter(Boolean);
+    }
+
+    function updatePoQty(id, val) {
+      const parsed = Math.max(0.1, parseFloat(val) || 0.1);
+      poOrderQtyMap[id] = parsed;
+    }
+
+    function renderPoTable() {
+      const tbody = document.getElementById('tablePoBody');
+      if (!tbody) return;
+      const items = getPoItems();
+      tbody.innerHTML = '';
+
+      if (items.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="p-8 text-center space-y-2">
+              <p class="text-sm font-semibold text-[#166534]">Seluruh stok bahan berada di atas batas minimal dan aman.</p>
+              <p class="text-xs text-[#5A6860]">Belum ada item yang perlu diajukan ke vendor saat ini.</p>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const media = getIngredientMedia(item.name, item.category);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-[#F9FAF8] transition-colors';
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-xs font-mono text-[#5A6860]">${item.id}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2.5">
+              <img src="${media.src}" alt="${item.name}" onerror="this.src='${media.fallback}'" class="w-9 h-9 rounded-lg object-cover border border-[#DFE5DD] shrink-0">
+              <span class="font-semibold text-[#16201B]">${item.name}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-xs text-[#5A6860]">${item.category}</td>
+          <td class="px-4 py-3 text-xs font-mono tabular-nums">
+            <span class="font-bold text-[#B45309]">${item.qty}</span> / ${item.minQty} ${item.unit}
+          </td>
+          <td class="px-4 py-3">
+            <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${item.isNearExp ? 'bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]' : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'}">${item.reason}</span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="inline-flex items-center gap-1.5">
+              <input type="number" step="0.5" min="0.5" value="${item.orderQty}" onchange="updatePoQty('${item.id}', this.value)" class="w-20 bg-[#F9FAF8] border border-[#D5DDD8] rounded-lg px-2.5 py-1 text-xs font-mono font-bold text-[#1B5E4B] focus:outline-none focus:border-[#1B5E4B]">
+              <span class="text-xs text-[#5A6860]">${item.unit}</span>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function copyPoText() {
+      const items = getPoItems();
+      if (items.length === 0) {
+        showToast('Tidak Ada Item PO', 'Semua stok aman, tidak ada daftar belanja yang perlu disalin.', 'warning');
+        return;
+      }
+      const vendor = document.getElementById('poVendorInput').value || 'Vendor';
+      const date = document.getElementById('poDateInput').value || getFutureDate(1);
+      const note = document.getElementById('poNoteInput').value || '';
+      const lines = [
+        `*PO PENGADAAN INSTALASI GIZI RS*`,
+        `Vendor: ${vendor}`,
+        `Target Kirim: ${date}`,
+        `---`,
+        ...items.map((it, i) => `${i + 1}. ${it.name} — Order: ${it.orderQty} ${it.unit} (${it.reason})`),
+        `---`,
+        note ? `Catatan: ${note}` : ''
+      ].filter(Boolean).join('\n');
+
+      navigator.clipboard?.writeText(lines).then(() => {
+        showToast('Teks PO Disalin', 'Daftar belanja siap ditempel ke WhatsApp atau email vendor.', 'success');
+      }).catch(() => {
+        showToast('Salin Gagal', 'Browser membatasi akses clipboard otomatis.', 'warning');
+      });
+    }
+
+    function renderInventoryTable() {
+      const tbody = document.getElementById('tableInventoryBody');
+      const gridWrap = document.getElementById('inventoryGridWrap');
+      tbody.innerHTML = '';
+      gridWrap.innerHTML = '';
+
+      const searchVal = document.getElementById('searchBar').value.toLowerCase();
+      const categoryVal = document.getElementById('filterKategori').value;
+      const today = new Date();
+
+      let totalItems = 0, totalAman = 0, totalKritis = 0, totalExpiredRisk = 0, visibleCount = 0;
+
+      inventory.forEach(item => {
+        const diffDays = Math.ceil((new Date(item.ed) - today) / (1000 * 60 * 60 * 24));
+        const isLow = item.qty <= item.minQty;
+        const isNearExp = diffDays <= 3;
+
+        totalItems++;
+        if (isNearExp) totalExpiredRisk++;
+        if (isLow) totalKritis++;
+        if (!isLow && !isNearExp) totalAman++;
+
+        const matchesSearch = item.name.toLowerCase().includes(searchVal) || item.id.toLowerCase().includes(searchVal);
+        const matchesCategory = categoryVal === 'semua' || item.category === categoryVal;
+
+        if (matchesSearch && matchesCategory) {
+          visibleCount++;
+          const media = getIngredientMedia(item.name, item.category);
+          const capPct = Math.min(100, Math.max(8, Math.round((item.qty / (item.minQty * 3)) * 100)));
+          const barColor = isNearExp ? 'bg-[#B91C1C]' : isLow ? 'bg-[#B45309]' : 'bg-[#1B5E4B]';
+
+          const statusHtml = isNearExp
+            ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEF2F2] text-[#B91C1C] border border-[#FECACA]">ED Dini</span>`
+            : isLow
+              ? `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]">Restok</span>`
+              : `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#ECFDF3] text-[#166534] border border-[#BBF7D0]">Aman</span>`;
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-[#F9FAF8] transition-colors group';
+          tr.innerHTML = `
+            <td class="px-4 py-3 text-xs font-mono text-[#5A6860] whitespace-nowrap">${item.id}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                <button type="button" onclick="openItemModal('${item.id}')" class="w-10 h-10 rounded-lg overflow-hidden border border-[#DFE5DD] shrink-0">
+                  <img src="${media.src}" alt="${item.name}" onerror="this.src='${media.fallback}'" class="img-zoom w-full h-full object-cover">
+                </button>
+                <div>
+                  <button type="button" onclick="openItemModal('${item.id}')" class="font-semibold text-[#16201B] hover:text-[#1B5E4B] text-left">${item.name}</button>
+                  <p class="text-xs text-[#5A6860]">Min: ${item.minQty} ${item.unit}</p>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3"><span class="text-xs px-2.5 py-1 rounded-md bg-[#F6F7F4] text-[#16201B] border border-[#DFE5DD] whitespace-nowrap">${item.category}</span></td>
+            <td class="px-4 py-3">
+              <div class="font-bold font-mono tabular-nums ${isLow ? 'text-[#B45309]' : 'text-[#16201B]'}">${item.qty} <span class="text-xs font-sans font-normal text-[#5A6860]">${item.unit}</span></div>
+              <div class="w-24 h-1.5 bg-[#EEF1EC] rounded-full overflow-hidden mt-1.5">
+                <div class="h-full rounded-full ${barColor}" style="width: ${capPct}%"></div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-xs font-mono tabular-nums ${isNearExp ? 'text-[#B91C1C] font-semibold' : 'text-[#16201B]'}">
+              ${item.ed}
+              <span class="block text-xs font-sans text-[#5A6860] font-normal">${diffDays} hari lagi</span>
+            </td>
+            <td class="px-4 py-3">${statusHtml}</td>
+            <td class="px-4 py-3 text-right no-print whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button onclick="manualAdjust('${item.id}', -1)" class="bg-[#F6F7F4] hover:bg-[#EAEEE8] text-[#16201B] text-xs px-2.5 py-1 rounded-md border border-[#DCE3DE] font-mono font-semibold">-1</button>
+                <button onclick="manualAdjust('${item.id}', 1)" class="bg-white hover:bg-[#F2F5F1] text-[#16201B] text-xs px-2.5 py-1 rounded-md border border-[#D5DDD8] font-mono font-semibold">+1</button>
+                <button onclick="deleteItem('${item.id}')" class="text-[#5A6860] hover:text-[#B91C1C] text-xs px-2 py-1 rounded-md hover:bg-[#FEF2F2]">Hapus</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+
+          const gCard = document.createElement('div');
+          gCard.className = 'surface-card surface-interactive group rounded-lg overflow-hidden flex flex-col';
+          gCard.innerHTML = `
+            <div class="relative h-36 overflow-hidden cursor-pointer bg-[#EEF1EC]" onclick="openItemModal('${item.id}')">
+              <img src="${media.src}" alt="${item.name}" onerror="this.src='${media.fallback}'" class="img-zoom w-full h-full object-cover">
+              <div class="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#16201B]/85 to-transparent"></div>
+              <span class="absolute top-2.5 left-2.5 text-xs font-mono bg-white/95 text-[#16201B] px-2 py-0.5 rounded">${item.id}</span>
+              <div class="absolute top-2.5 right-2.5">${statusHtml}</div>
+              <h4 class="absolute bottom-2.5 left-3 right-3 text-sm font-bold text-white truncate">${item.name}</h4>
+            </div>
+            <div class="p-4 space-y-3 flex-1 flex flex-col justify-between">
+              <div class="flex items-center justify-between text-xs text-[#5A6860]">
+                <span>${item.category}</span>
+                <span class="font-mono">ED ${item.ed}</span>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span class="text-[#5A6860]">Tersedia</span>
+                  <span class="font-mono font-bold tabular-nums text-[#16201B]">${item.qty} ${item.unit}</span>
+                </div>
+                <div class="w-full h-1.5 bg-[#EEF1EC] rounded-full overflow-hidden">
+                  <div class="h-full rounded-full ${barColor}" style="width: ${capPct}%"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 pt-1 no-print">
+                <button onclick="manualAdjust('${item.id}', -1)" class="flex-1 bg-[#F6F7F4] hover:bg-[#EAEEE8] text-[#16201B] text-xs font-semibold py-1.5 rounded-lg border border-[#DCE3DE]">- 1 ${item.unit}</button>
+                <button onclick="manualAdjust('${item.id}', 1)" class="flex-1 bg-white hover:bg-[#F2F5F1] text-[#16201B] text-xs font-semibold py-1.5 rounded-lg border border-[#D5DDD8]">+ 1 ${item.unit}</button>
+                <button onclick="deleteItem('${item.id}')" class="p-1.5 text-[#5A6860] hover:text-[#B91C1C] hover:bg-[#FEF2F2] rounded-lg" aria-label="Hapus">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          `;
+          gridWrap.appendChild(gCard);
+        }
+      });
+
+      if (visibleCount === 0) {
+        const emptyHtml = `
+          <div class="py-10 px-4 text-center space-y-3">
+            <p class="text-sm font-semibold text-[#16201B]">Tidak ada bahan yang sesuai dengan filter saat ini.</p>
+            <button type="button" onclick="selectWarehouseFilter('semua')" class="text-xs font-semibold bg-[#1B5E4B] hover:bg-[#144839] text-white px-4 py-2 rounded-lg">Reset Filter Gudang</button>
+          </div>`;
+        tbody.innerHTML = `<tr><td colspan="7">${emptyHtml}</td></tr>`;
+        gridWrap.innerHTML = `<div class="col-span-full surface-card rounded-lg">${emptyHtml}</div>`;
+      }
+
+      document.getElementById('statTotalItems').innerText = totalItems;
+      document.getElementById('statAman').innerText = totalAman;
+      document.getElementById('statKritis').innerText = totalKritis;
+      document.getElementById('statExpired').innerText = totalExpiredRisk;
+      document.getElementById('navStockBadge').innerText = totalItems;
+
+      const poItems = getPoItems();
+      document.getElementById('navPoBadge').innerText = poItems.length;
+      const alertPill = document.getElementById('fifoAlertPill');
+      if (poItems.length > 0) {
+        alertPill.className = 'hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFFBEB] hover:bg-[#FEF3C7] border border-[#FDE68A] text-[#B45309] text-xs font-semibold';
+        document.getElementById('fifoAlertText').innerText = `${poItems.length} Item PO`;
+      } else {
+        alertPill.className = 'hidden';
+      }
+
+      const healthPct = totalItems > 0 ? Math.round((totalAman / totalItems) * 100) : 100;
+      document.getElementById('sidebarHealthPct').innerText = `${healthPct}%`;
+      document.getElementById('sidebarHealthBar').style.width = `${healthPct}%`;
+      document.getElementById('sidebarHealthNote').innerText = `${totalAman} dari ${totalItems} bahan dalam kondisi aman.`;
+
+      localStorage.setItem('nutristok_v4_data', JSON.stringify(inventory));
+      renderWarehouseCards();
+      renderFifoSpotlight();
+      renderPoTable();
+      lucide.createIcons();
+    }
+
+    document.getElementById('formPenerimaan').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nama = document.getElementById('inputNama').value.trim();
+      const kategori = document.getElementById('inputKategori').value;
+      const jumlah = parseFloat(document.getElementById('inputJumlah').value);
+      const satuan = document.getElementById('inputSatuan').value;
+      const ed = document.getElementById('inputED').value;
+
+      if (!nama || isNaN(jumlah) || jumlah <= 0) return;
+
+      const existing = inventory.find(i => i.name.toLowerCase() === nama.toLowerCase());
+      if (existing) {
+        existing.qty = parseFloat((existing.qty + jumlah).toFixed(1));
+        existing.ed = ed;
+        showToast('Batch Diperbarui', `Menambahkan ${jumlah} ${satuan} ke ${existing.name}.`, 'success');
+      } else {
+        const nextNum = inventory.length + 1;
+        const newId = `BHN-${String(nextNum).padStart(3, '0')}`;
+        inventory.push({ id: newId, name: nama, category: kategori, qty: jumlah, minQty: 3, unit: satuan, ed: ed });
+        showToast('Bahan Diterima', `${nama} (${jumlah} ${satuan}) masuk ke ${kategori}.`, 'success');
+      }
+
+      addAuditLog(nama, 'MASUK', `${jumlah} ${satuan}`, 'Penerimaan Gudang Baru');
+      renderInventoryTable();
+      this.reset();
+      closeReceiveDialog();
+    });
+
+    document.getElementById('formResepKustom').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const name = document.getElementById('recName').value.trim();
+      const patientClass = document.getElementById('recPatientClass').value.trim();
+      const image = document.getElementById('recImage').value;
+      const kcal = parseInt(document.getElementById('recKcal').value, 10) || 350;
+      const protein = parseInt(document.getElementById('recProtein').value, 10) || 20;
+      const fiber = parseInt(document.getElementById('recFiber').value, 10) || 4;
+      const desc = document.getElementById('recDesc').value.trim();
+
+      const rows = [...document.querySelectorAll('.rec-ing-row')];
+      const ingredients = rows.map(r => ({
+        name: r.querySelector('.rec-ing-name').value,
+        perPortion: parseFloat(r.querySelector('.rec-ing-qty').value) || 0.05,
+        unit: r.querySelector('.rec-ing-unit').value
+      })).filter(ing => ing.name && ing.perPortion > 0);
+
+      if (!name || ingredients.length === 0) {
+        showToast('Data Belum Lengkap', 'Isi nama menu dan minimal 1 komposisi bahan.', 'warning');
+        return;
+      }
+
+      const key = 'custom_' + Date.now();
+      customRecipes[key] = {
+        name,
+        patientClass,
+        kcal,
+        protein,
+        fiber,
+        image,
+        fallback: FALLBACK_SVG.meal,
+        desc,
+        isCustom: true,
+        ingredients
+      };
+
+      localStorage.setItem('nutristok_v4_recipes', JSON.stringify(customRecipes));
+      populateRecipeSelect(key);
+      renderMenuCards();
+      loadRecipeDetails();
+      closeRecipeDialog();
+      showToast('Resep Ditambahkan', `${name} siap digunakan di Kalkulator Porsi.`, 'success');
+    });
+
+    function deleteCustomRecipe(key, event) {
+      event.stopPropagation();
+      const rec = customRecipes[key];
+      if (!rec) return;
+      openConfirmModal('Hapus Resep Kustom?', `Menu "${rec.name}" akan dihapus dari daftar resep.`, () => {
+        delete customRecipes[key];
+        localStorage.setItem('nutristok_v4_recipes', JSON.stringify(customRecipes));
+        populateRecipeSelect('sop_ayam');
+        renderMenuCards();
+        loadRecipeDetails();
+        showToast('Resep Dihapus', `${rec.name} dihapus.`, 'warning');
+      });
+    }
+
+    function populateRecipeSelect(selectedKey) {
+      const select = document.getElementById('recipeSelect');
+      if (!select) return;
+      const all = getAllRecipes();
+      const current = selectedKey || select.value || 'sop_ayam';
+      select.innerHTML = Object.entries(all)
+        .map(([k, r]) => `<option value="${k}">${r.name} (${r.patientClass})</option>`)
+        .join('');
+      select.value = all[current] ? current : 'sop_ayam';
+      const badge = document.getElementById('navRecipeBadge');
+      if (badge) badge.innerText = Object.keys(all).length;
+    }
+
+    function renderMenuCards() {
+      const container = document.getElementById('menuCardsContainer');
+      if (!container) return;
+      const all = getAllRecipes();
+      const activeKey = document.getElementById('recipeSelect').value;
+      container.innerHTML = '';
+
+      Object.entries(all).forEach(([key, rec]) => {
+        const isSelected = key === activeKey;
+        const card = document.createElement('div');
+        card.onclick = () => syncMenuSelection(key);
+        card.role = 'button';
+        card.tabIndex = 0;
+        card.className = `surface-interactive group cursor-pointer text-left rounded-lg overflow-hidden border flex flex-col ${
+          isSelected ? 'border-[#1B5E4B] ring-2 ring-[#1B5E4B]/20 bg-[#F9FBF9]' : 'border-[#DFE5DD] bg-white'
+        }`;
+        card.innerHTML = `
+          <div class="relative aspect-[16/10] w-full overflow-hidden bg-[#EEF1EC]">
+            <img src="${rec.image}" alt="${rec.name}" onerror="this.src='${rec.fallback || FALLBACK_SVG.meal}'" class="img-zoom w-full h-full object-cover">
+            <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#16201B]/75 to-transparent"></div>
+            <span class="absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded bg-white/95 text-[#16201B]">${rec.patientClass}</span>
+            ${rec.isCustom
+              ? `<button type="button" onclick="deleteCustomRecipe('${key}', event)" title="Hapus Resep Kustom" class="absolute top-2 right-2 p-1 rounded bg-white/95 text-[#B91C1C] hover:bg-[#FEF2F2] border border-[#FECACA]"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
+              : (isSelected ? `<span class="absolute top-2 right-2 text-xs font-semibold px-2 py-0.5 rounded bg-[#1B5E4B] text-white">Dipilih</span>` : '')
+            }
+          </div>
+          <div class="p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
+            <div>
+              <h4 class="text-sm font-bold text-[#16201B]">${rec.name}</h4>
+              <p class="text-xs text-[#5A6860] mt-1 leading-relaxed">${rec.desc}</p>
+            </div>
+            <p class="text-xs font-mono text-[#1B5E4B] font-semibold pt-1">${rec.kcal} kcal &bull; ${rec.protein}g Protein</p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function syncMenuSelection(key) {
+      document.getElementById('recipeSelect').value = key;
+      renderMenuCards();
+      loadRecipeDetails();
+    }
+
+    function setPortions(val) {
+      const n = Math.max(1, parseInt(val, 10) || 1);
+      document.getElementById('portionCount').value = n;
+      document.getElementById('portionSlider').value = Math.min(250, n);
+      loadRecipeDetails();
+    }
+
+    function syncPortionInput(val) {
+      const n = Math.max(1, parseInt(val, 10) || 1);
+      document.getElementById('portionSlider').value = Math.min(250, n);
+      loadRecipeDetails();
+    }
+
+    function loadRecipeDetails() {
+      const all = getAllRecipes();
+      const recipeKey = document.getElementById('recipeSelect').value;
+      const recipe = all[recipeKey] || Object.values(all)[0];
+      const portion = Math.max(1, parseInt(document.getElementById('portionCount').value, 10) || 1);
+
+      document.getElementById('portionLabelText').innerText = `${portion} Porsi`;
+
+      const summaryBox = document.getElementById('nutritionSummaryBox');
+      if (summaryBox) {
+        summaryBox.innerHTML = `
+          <div>
+            <p class="text-xs text-[#5A6860] font-medium">Total Energi</p>
+            <p class="text-xs font-mono font-bold text-[#16201B] tabular-nums mt-0.5">${(recipe.kcal * portion).toLocaleString('id-ID')} kcal</p>
+          </div>
+          <div>
+            <p class="text-xs text-[#5A6860] font-medium">Total Protein</p>
+            <p class="text-xs font-mono font-bold text-[#1B5E4B] tabular-nums mt-0.5">${(recipe.protein * portion).toLocaleString('id-ID')} g</p>
+          </div>
+          <div>
+            <p class="text-xs text-[#5A6860] font-medium">Total Serat</p>
+            <p class="text-xs font-mono font-bold text-[#16201B] tabular-nums mt-0.5">${(recipe.fiber * portion).toLocaleString('id-ID')} g</p>
+          </div>
+        `;
+      }
+
+      const breakdownDiv = document.getElementById('recipeBreakdown');
+      breakdownDiv.innerHTML = '';
+
+      recipe.ingredients.forEach(ing => {
+        const neededQty = parseFloat((ing.perPortion * portion).toFixed(2));
+        const stockItem = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+        const currentStock = stockItem ? stockItem.qty : 0;
+        const isSufficient = currentStock >= neededQty;
+        const media = getIngredientMedia(ing.name, stockItem ? stockItem.category : 'Basah/Segar');
+        const ratioPct = currentStock > 0 ? Math.min(100, Math.round((neededQty / currentStock) * 100)) : 100;
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-lg border ${isSufficient ? 'bg-[#F9FAF8] border-[#DFE5DD]' : 'bg-[#FEF2F2] border-[#FECACA]'}`;
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <img src="${media.src}" alt="${ing.name}" onerror="this.src='${media.fallback}'" class="w-10 h-10 rounded-lg object-cover border border-[#DFE5DD] shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-center gap-2">
+                <h4 class="font-bold text-[#16201B] text-xs sm:text-sm truncate">${ing.name}</h4>
+                <span class="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${isSufficient ? 'bg-[#ECFDF3] text-[#166534]' : 'bg-[#FEF2F2] text-[#B91C1C]'}">${isSufficient ? 'Cukup' : 'Kurang'}</span>
+              </div>
+              <p class="text-xs text-[#5A6860] mt-0.5">${(ing.perPortion * 1000).toFixed(0)}g / porsi</p>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-[#5A6860] flex justify-between items-center">
+            <span>Kebutuhan: <b class="text-[#16201B] font-mono tabular-nums">${neededQty} ${ing.unit}</b></span>
+            <span>Tersedia: <b class="font-mono tabular-nums ${isSufficient ? 'text-[#1B5E4B]' : 'text-[#B91C1C]'}">${currentStock} ${ing.unit}</b></span>
+          </div>
+          <div class="w-full h-1.5 bg-[#E3E7DF] rounded-full overflow-hidden mt-2">
+            <div class="h-full rounded-full ${isSufficient ? 'bg-[#1B5E4B]' : 'bg-[#B91C1C]'}" style="width: ${ratioPct}%"></div>
+          </div>
+        `;
+        breakdownDiv.appendChild(card);
+      });
+    }
+
+    function executeRecipeUsage() {
+      const all = getAllRecipes();
+      const recipeKey = document.getElementById('recipeSelect').value;
+      const portion = Math.max(1, parseInt(document.getElementById('portionCount').value, 10) || 1);
+      const recipe = all[recipeKey];
+
+      let canExecute = true;
+      recipe.ingredients.forEach(ing => {
+        const neededQty = ing.perPortion * portion;
+        const stockItem = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+        if (!stockItem || stockItem.qty < neededQty) canExecute = false;
+      });
+
+      if (!canExecute) {
+        showToast('Stok Tidak Mencukupi', 'Beberapa bahan tidak cukup untuk jumlah porsi ini.', 'error');
+        return;
+      }
+
+      recipe.ingredients.forEach(ing => {
+        const neededQty = ing.perPortion * portion;
+        const stockItem = inventory.find(i => i.name.toLowerCase() === ing.name.toLowerCase());
+        stockItem.qty = parseFloat((stockItem.qty - neededQty).toFixed(1));
+        addAuditLog(stockItem.name, 'KELUAR', `${neededQty.toFixed(1)} ${stockItem.unit}`, `Masak Menu: ${recipe.name} (${portion} Porsi)`);
+      });
+
+      renderInventoryTable();
+      loadRecipeDetails();
+      showToast('Produksi Masak Diproses', `Stok dipotong otomatis untuk ${portion} porsi ${recipe.name}.`, 'success');
+    }
+
+    function manualAdjust(id, amount) {
+      const item = inventory.find(i => i.id === id);
+      if (item) {
+        item.qty = Math.max(0, parseFloat((item.qty + amount).toFixed(1)));
+        addAuditLog(item.name, amount < 0 ? 'KELUAR' : 'MASUK', `${Math.abs(amount)} ${item.unit}`, 'Koreksi Stok Manual');
+        renderInventoryTable();
+        showToast('Stok Diperbarui', `${item.name} kini tersisa ${item.qty} ${item.unit}.`, amount < 0 ? 'warning' : 'success');
+      }
+    }
+
+    function deleteItem(id) {
+      const item = inventory.find(i => i.id === id);
+      openConfirmModal('Hapus Item Bahan?', `Item "${item ? item.name : id}" akan dihapus dari master database gudang.`, () => {
+        inventory = inventory.filter(i => i.id !== id);
+        renderInventoryTable();
+        showToast('Item Dihapus', `${item ? item.name : id} dihapus dari database.`, 'warning');
+      });
+    }
+
+    function addAuditLog(name, type, qty, note) {
+      auditLogs.unshift({
+        timestamp: new Date().toLocaleString('id-ID'),
+        name,
+        type,
+        qty,
+        note
+      });
+      localStorage.setItem('nutristok_v4_logs', JSON.stringify(auditLogs));
+      renderLogTable();
+    }
+
+    function setLogFilter(mode) {
+      currentLogFilter = mode;
+      const map = { ALL: 'logFilterAll', MASUK: 'logFilterMasuk', KELUAR: 'logFilterKeluar' };
+      Object.entries(map).forEach(([k, btnId]) => {
+        const btn = document.getElementById(btnId);
+        btn.className = k === mode
+          ? 'px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-[#16201B] border border-[#D5DDD8] shadow-xs'
+          : 'px-3 py-1.5 rounded-md text-xs font-semibold text-[#5A6860] hover:text-[#16201B] border border-transparent';
+      });
+      renderLogTable();
+    }
+
+    function renderLogTable() {
+      const badge = document.getElementById('logCountBadge');
+      if (badge) badge.innerText = auditLogs.length;
+
+      const tbody = document.getElementById('tableLogBody');
+      tbody.innerHTML = '';
+
+      const filtered = auditLogs.filter(l => currentLogFilter === 'ALL' || l.type === currentLogFilter);
+      filtered.slice(0, 30).forEach(log => {
+        const itemRef = inventory.find(i => i.name.toLowerCase() === log.name.toLowerCase());
+        const media = getIngredientMedia(log.name, itemRef ? itemRef.category : 'Basah/Segar');
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-[#F9FAF8] transition-colors';
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-xs text-[#5A6860] font-mono tabular-nums whitespace-nowrap">${log.timestamp}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2.5">
+              <img src="${media.src}" alt="${log.name}" onerror="this.src='${media.fallback}'" class="w-8 h-8 rounded-lg object-cover border border-[#DFE5DD] shrink-0">
+              <span class="font-semibold text-[#16201B]">${log.name}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold ${log.type === 'MASUK' ? 'bg-[#ECFDF3] text-[#166534] border border-[#BBF7D0]' : 'bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A]'}">${log.type}</span>
+          </td>
+          <td class="px-4 py-3 text-sm font-bold font-mono tabular-nums text-[#16201B]">${log.qty}</td>
+          <td class="px-4 py-3 text-xs text-[#5A6860]">${log.note}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-[#5A6860] text-sm">Belum ada riwayat mutasi untuk filter ini.</td></tr>`;
+      }
+    }
+
+    // Ekspor CSV UTF-8 BOM kompatibel Excel Indonesia (;) dan standar (,)
+    function exportCsv(scope) {
+      const delimiter = document.getElementById('csvDelimiter')?.value || ';';
+      const escapeCell = (val) => {
+        const str = String(val ?? '');
+        if (str.includes(delimiter) || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      let headers = [];
+      let rows = [];
+      let filename = 'nutristok-rs.csv';
+
+      if (scope === 'inventory') {
+        filename = `nutristok-stok-${new Date().toISOString().slice(0, 10)}.csv`;
+        headers = ['Kode ID', 'Nama Bahan', 'Gudang', 'Sisa Stok', 'Batas Minimal', 'Satuan', 'Kedaluwarsa (ED)'];
+        rows = inventory.map(i => [i.id, i.name, i.category, i.qty, i.minQty, i.unit, i.ed]);
+      } else if (scope === 'po') {
+        const poItems = getPoItems();
+        if (poItems.length === 0) {
+          showToast('PO Kosong', 'Semua stok aman, tidak ada data PO untuk diekspor.', 'warning');
+          return;
+        }
+        filename = `nutristok-po-pengadaan-${new Date().toISOString().slice(0, 10)}.csv`;
+        headers = ['Kode ID', 'Nama Bahan', 'Gudang', 'Sisa Stok', 'Batas Min', 'Saran Order', 'Satuan', 'Alasan'];
+        rows = poItems.map(i => [i.id, i.name, i.category, i.qty, i.minQty, i.orderQty, i.unit, i.reason]);
+      } else if (scope === 'logs') {
+        filename = `nutristok-audit-mutasi-${new Date().toISOString().slice(0, 10)}.csv`;
+        headers = ['Waktu Transaksi', 'Bahan Makanan', 'Tipe Mutasi', 'Jumlah', 'Keterangan'];
+        rows = auditLogs.map(l => [l.timestamp, l.name, l.type, l.qty, l.note]);
+      }
+
+      const csvContent = '\uFEFF' + [headers, ...rows].map(r => r.map(escapeCell).join(delimiter)).join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Laporan Diekspor', `File ${filename} berhasil diunduh.`, 'success');
+    }
+
+    function requestResetDemo() {
+      openConfirmModal('Reset Data Simulasi?', 'Seluruh perubahan stok, resep kustom, dan audit akan dikembalikan ke data awal.', () => {
+        localStorage.removeItem('nutristok_v4_data');
+        localStorage.removeItem('nutristok_v4_logs');
+        localStorage.removeItem('nutristok_v4_recipes');
+        location.reload();
+      });
+    }
+
+    // Initialize
+    lucide.createIcons();
+    setDefaultDateInput();
+    updateFormPreview();
+    populateRecipeSelect();
+    renderInventoryTable();
+    renderLogTable();
+    renderMenuCards();
+    loadRecipeDetails();
+    const initialTab = location.hash.replace('#', '');
+    if (['inventory', 'po', 'masak', 'log'].includes(initialTab)) {
+      switchTab(initialTab);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-COMSTOCK - Electronic Food Waste Monitoring</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS, Lucide Icons, Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            },
+            softblue: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#bae0fd',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Clean Light Minimalist Styling matching User Prototype */
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Print Stylesheet for Official Hospital A4 */
+    @media print {
+      .no-print { display: none !important; }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: 'Times New Roman', Times, serif !important;
+        font-size: 11pt !important;
+        padding: 0 !important;
+      }
+      .print-only { display: block !important; }
+      .print-border { border: 1px solid #334155 !important; }
+      table { border-collapse: collapse !important; width: 100% !important; margin-bottom: 12px !important; }
+      th, td { border: 1px solid #475569 !important; padding: 6px 8px !important; color: #000 !important; }
+      th { background-color: #f1f5f9 !important; font-weight: bold !important; text-align: center !important; }
+      .page-break { page-break-after: always; }
+    }
+
+    .print-only { display: none; }
+
+    /* Custom Input Pill Focus Styles */
+    .pill-input {
+      border-radius: 9999px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pill-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      outline: none;
+    }
+
+    /* Smooth Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- ==================== PRINT ONLY FORMAL KEMENKES KOP ==================== -->
+  <div class="print-only p-8 border-b-2 border-black mb-6">
+    <div class="flex items-center justify-between pb-3">
+      <div class="text-left">
+        <h2 class="text-xl font-bold uppercase tracking-wider text-black">RUMAH SAKIT UMUM DAERAH SEHAT SENTOSA</h2>
+        <h3 class="text-base font-semibold text-slate-800">INSTALASI PELAYANAN GIZI & DIETETIK</h3>
+        <p class="text-xs text-slate-600">Jl. Kesehatan No. 45 Yogyakarta | Telp: (0274) 555-0199 | Email: gizi@rsudsehatsentosa.go.id</p>
+      </div>
+      <div class="text-right border-l-2 border-slate-300 pl-4">
+        <span class="text-xs font-bold uppercase block text-slate-700">FORMULIR REKAPITULASI RESMI</span>
+        <span class="text-lg font-black text-black">E-COMSTOCK RS</span>
+        <p class="text-xs text-slate-600">Standar SPM Gizi Kemenkes RI (Sisa Makanan &le; 20%)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER APLIKASI (PRISTINE LIGHT MEDICAL) ==================== -->
+  <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 no-print shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Title (Clean Modern Medical Blue) -->
+      <div class="flex items-center gap-3">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-xl font-extrabold text-blue-700 tracking-tight">E-COMSTOCK</h1>
+            <span class="bg-blue-50 text-blue-700 text-[11px] font-bold px-3 py-0.5 rounded-full border border-blue-200">
+              Prototype demo
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium">Electronic Food Waste Monitoring</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="exportToWord()" class="px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="file-text" class="w-4 h-4 text-blue-600"></i> Ekspor Word
+        </button>
+        <button onclick="window.print()" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-full transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i> Cetak / PDF
+        </button>
+        <button onclick="exportToCSV()" class="px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="download" class="w-4 h-4 text-blue-600"></i> Unduh CSV
+        </button>
+        <button onclick="resetToDemoData()" class="px-3 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-full transition flex items-center gap-1.5 shadow-sm" title="Kembalikan data demo">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-rose-600"></i> Reset
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ==================== TAB NAVIGATION BAR (NO-PRINT) ==================== -->
+  <div class="bg-white border-b border-slate-200 no-print">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 sm:gap-4 overflow-x-auto text-xs py-1">
+      <button onclick="switchTab('form')" id="tab-btn-form" class="tab-btn active px-4 py-2.5 font-bold border-b-2 border-blue-600 text-blue-700 flex items-center gap-2 transition whitespace-nowrap">
+        <i data-lucide="clipboard-edit" class="w-4 h-4"></i> Form Pengamatan Sisa Makanan
+      </button>
+      <button onclick="switchTab('rekap')" id="tab-btn-rekap" class="tab-btn px-4 py-2.5 font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition whitespace-nowrap">
+        <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Rekapitulasi Rata-rata Ruangan
+      </button>
+      <button onclick="switchTab('pasien')" id="tab-btn-pasien" class="tab-btn px-4 py-2.5 font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition whitespace-nowrap">
+        <i data-lucide="users" class="w-4 h-4"></i> Database Pasien (s.d 200 Pasien)
+      </button>
+      <button onclick="switchTab('standar')" id="tab-btn-standar" class="tab-btn px-4 py-2.5 font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition whitespace-nowrap">
+        <i data-lucide="info" class="w-4 h-4"></i> Pedoman 6 Skala Comstock
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN CONTAINER ==================== -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow space-y-8 print-container">
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: FORM PENGAMATAN SISA MAKANAN (SESUAI PROTOTYPE GAMBAR) -->
+    <!-- ============================================================== -->
+    <div id="tab-form" class="tab-content space-y-8">
+
+      <!-- MAIN FORM CONTAINER CARD -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-8">
+        
+        <!-- HEADER FORM -->
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Form pengamatan sisa makanan</h2>
+          <p class="text-xs text-slate-400 font-semibold tracking-wider uppercase mt-1">SIMULASI DATA &mdash; bukan data pasien sungguhan</p>
+        </div>
+
+        <!-- ==================== A. IDENTITAS PENGAMATAN ==================== -->
+        <section class="space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="text-base font-bold text-slate-900">A. Identitas pengamatan</h3>
+            <div class="flex items-center gap-2 text-xs text-slate-500 no-print">
+              <span>Navigasi Pasien:</span>
+              <button type="button" onclick="navigatePatient(-1)" class="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition" title="Pasien Sebelumnya">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <button type="button" onclick="navigatePatient(1)" class="p-1 hover:bg-slate-100 rounded-full text-slate-600 transition" title="Pasien Berikutnya">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-4 pt-1">
+            
+            <!-- KODE PASIEN DENGAN TOMBOL "+" (SESUAI CATATAN USER: 200 PASIEN & BISA DISAVE) -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block text-xs font-semibold text-slate-700">Kode pasien</label>
+                <span class="text-[11px] text-blue-600 font-semibold">Kapasitas hingga 200 pasien</span>
+              </div>
+              <div class="flex gap-2">
+                <input type="text" id="patientCode" value="P001" onchange="onPatientCodeChange()" class="w-full bg-white border border-slate-200 rounded-full px-5 py-3 text-sm text-slate-800 pill-input font-bold uppercase" placeholder="P001">
+                <!-- TOMBOL "+" SESUAI INSTRUKSI USER -->
+                <button type="button" onclick="addNewPatientPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-full text-xs transition shadow-sm flex items-center justify-center gap-1.5 shrink-0 active:scale-95" title="Tambah Pasien Baru (+)">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  <span>+ Pasien</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- RUANG PERAWATAN -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Ruang perawatan</label>
+              <select id="roomName" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-full px-5 py-3 text-sm text-slate-800 pill-input cursor-pointer font-medium">
+                <option value="Melati" selected>Melati</option>
+                <option value="Mawar">Mawar</option>
+                <option value="Anggrek">Anggrek</option>
+                <option value="Dahlia">Dahlia</option>
+                <option value="Teratai">Teratai</option>
+                <option value="Flamboyan">Flamboyan</option>
+                <option value="ICU">ICU</option>
+                <option value="VIP">VIP</option>
+              </select>
+            </div>
+
+            <!-- WAKTU MAKAN (PAGI, SIANG, MALAM RADIO BUTTONS) -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Waktu makan</label>
+              <div class="flex items-center gap-6 pt-1">
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
+                  <input type="radio" name="mealTime" value="Pagi" checked onchange="calculateFormComstock()" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                  <span>Pagi</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
+                  <input type="radio" name="mealTime" value="Siang" onchange="calculateFormComstock()" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                  <span>Siang</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-slate-800">
+                  <input type="radio" name="mealTime" value="Malam" onchange="calculateFormComstock()" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300">
+                  <span>Malam</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- NAMA PETUGAS PENGAMAT & TANGGAL -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nama petugas pengamat</label>
+                <input type="text" id="observerName" value="Petugas Gizi" class="w-full bg-white border border-slate-200 rounded-full px-5 py-3 text-sm text-slate-800 pill-input" placeholder="Petugas Gizi">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal pengamatan</label>
+                <input type="date" id="obsDate" class="w-full bg-white border border-slate-200 rounded-full px-5 py-3 text-sm text-slate-800 pill-input">
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== B. PENILAIAN TAKSIRAN VISUAL COMSTOCK ==================== -->
+        <section class="space-y-6 pt-2">
+          <div class="border-b border-slate-100 pb-2">
+            <h3 class="text-base font-bold text-slate-900">B. Penilaian taksiran visual Comstock</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Pilih skala berdasarkan kondisi sisa masing-masing komponen makanan.</p>
+          </div>
+
+          <!-- 5 KOMPONEN MAKANAN DENGAN KOLOM NAMA MENU (SESUAI CATATAN USER) -->
+          <div class="space-y-6">
+
+            <!-- 1. MAKANAN POKOK (GANTI NASI & ADA KOLOM NAMA MENU) -->
+            <div class="space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <span>Makanan Pokok</span>
+                  <span class="text-xs font-normal text-slate-400">(sebelumnya Nasi)</span>
+                </label>
+                <!-- KOLOM NAMA MENU (AGAR BISA DIKETIK SESUAI CATATAN USER) -->
+                <input type="text" id="menu_pokok" placeholder="Nama menu: Nasi Tim / Bubur..." value="Nasi Putih Pulen" class="text-xs bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-slate-700 w-full sm:w-64 focus:bg-white focus:border-blue-600 focus:outline-none transition">
+              </div>
+
+              <!-- DROPDOWN SKALA COMSTOCK -->
+              <div class="relative">
+                <select id="scale_pokok" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 pill-input cursor-pointer appearance-none pr-10">
+                  <option value="0">0 — Sisa 0% (Habis)</option>
+                  <option value="25">1 — Sisa 25% (1/4 porsi)</option>
+                  <option value="50" selected>2 — Sisa 50%</option>
+                  <option value="75">3 — Sisa 75%</option>
+                  <option value="95">4 — Sisa 95%</option>
+                  <option value="100">5 — Sisa 100% (Utuh)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <!-- PROGRESS BAR & LABEL SISA MAKANAN -->
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-xs font-medium">
+                  <span class="text-slate-500">Sisa makanan</span>
+                  <span id="label_pokok" class="text-slate-900 font-bold">50%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div id="bar_pokok" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 50%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. LAUK HEWANI (ADA KOLOM NAMA MENU) -->
+            <div class="space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label class="text-sm font-bold text-slate-900">Lauk hewani</label>
+                <!-- KOLOM NAMA MENU -->
+                <input type="text" id="menu_hewani" placeholder="Nama menu: Ayam / Ikan / Daging..." value="Ayam Panggang Semur" class="text-xs bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-slate-700 w-full sm:w-64 focus:bg-white focus:border-blue-600 focus:outline-none transition">
+              </div>
+
+              <div class="relative">
+                <select id="scale_hewani" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 pill-input cursor-pointer appearance-none pr-10">
+                  <option value="0">0 — Sisa 0% (Habis)</option>
+                  <option value="25">1 — Sisa 25% (1/4 porsi)</option>
+                  <option value="50">2 — Sisa 50%</option>
+                  <option value="75" selected>3 — Sisa 75%</option>
+                  <option value="95">4 — Sisa 95%</option>
+                  <option value="100">5 — Sisa 100% (Utuh)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-xs font-medium">
+                  <span class="text-slate-500">Sisa makanan</span>
+                  <span id="label_hewani" class="text-slate-900 font-bold">75%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div id="bar_hewani" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 75%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. LAUK NABATI (ADA KOLOM NAMA MENU) -->
+            <div class="space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label class="text-sm font-bold text-slate-900">Lauk nabati</label>
+                <!-- KOLOM NAMA MENU -->
+                <input type="text" id="menu_nabati" placeholder="Nama menu: Tempe / Tahu..." value="Tempe Bacem Basah" class="text-xs bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-slate-700 w-full sm:w-64 focus:bg-white focus:border-blue-600 focus:outline-none transition">
+              </div>
+
+              <div class="relative">
+                <select id="scale_nabati" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 pill-input cursor-pointer appearance-none pr-10">
+                  <option value="0">0 — Sisa 0% (Habis)</option>
+                  <option value="25">1 — Sisa 25% (1/4 porsi)</option>
+                  <option value="50">2 — Sisa 50%</option>
+                  <option value="75" selected>3 — Sisa 75%</option>
+                  <option value="95">4 — Sisa 95%</option>
+                  <option value="100">5 — Sisa 100% (Utuh)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-xs font-medium">
+                  <span class="text-slate-500">Sisa makanan</span>
+                  <span id="label_nabati" class="text-slate-900 font-bold">75%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div id="bar_nabati" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 75%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. SAYUR (ADA KOLOM NAMA MENU) -->
+            <div class="space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label class="text-sm font-bold text-slate-900">Sayur</label>
+                <!-- KOLOM NAMA MENU -->
+                <input type="text" id="menu_sayur" placeholder="Nama menu: Sayur Bening / Sop..." value="Sayur Bening Bayam Labu" class="text-xs bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-slate-700 w-full sm:w-64 focus:bg-white focus:border-blue-600 focus:outline-none transition">
+              </div>
+
+              <div class="relative">
+                <select id="scale_sayur" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 pill-input cursor-pointer appearance-none pr-10">
+                  <option value="0">0 — Sisa 0% (Habis)</option>
+                  <option value="25">1 — Sisa 25% (1/4 porsi)</option>
+                  <option value="50">2 — Sisa 50%</option>
+                  <option value="75">3 — Sisa 75%</option>
+                  <option value="95" selected>4 — Sisa 95%</option>
+                  <option value="100">5 — Sisa 100% (Utuh)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-xs font-medium">
+                  <span class="text-slate-500">Sisa makanan</span>
+                  <span id="label_sayur" class="text-slate-900 font-bold">95%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div id="bar_sayur" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 95%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. BUAH (ADA KOLOM NAMA MENU) -->
+            <div class="space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <label class="text-sm font-bold text-slate-900">Buah</label>
+                <!-- KOLOM NAMA MENU -->
+                <input type="text" id="menu_buah" placeholder="Nama menu: Pisang / Melon..." value="Semangka Merah Segar" class="text-xs bg-slate-50 border border-slate-200 rounded-full px-3.5 py-1.5 text-slate-700 w-full sm:w-64 focus:bg-white focus:border-blue-600 focus:outline-none transition">
+              </div>
+
+              <div class="relative">
+                <select id="scale_buah" onchange="calculateFormComstock()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-800 pill-input cursor-pointer appearance-none pr-10">
+                  <option value="0">0 — Sisa 0% (Habis)</option>
+                  <option value="25">1 — Sisa 25% (1/4 porsi)</option>
+                  <option value="50">2 — Sisa 50%</option>
+                  <option value="75" selected>3 — Sisa 75%</option>
+                  <option value="95">4 — Sisa 95%</option>
+                  <option value="100">5 — Sisa 100% (Utuh)</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                  <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+              </div>
+
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-xs font-medium">
+                  <span class="text-slate-500">Sisa makanan</span>
+                  <span id="label_buah" class="text-slate-900 font-bold">75%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div id="bar_buah" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 75%;"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==================== C. HASIL PERHITUNGAN OTOMATIS ==================== -->
+        <!-- CLEAN LIGHT BLUE ROUNDED BOX -->
+        <section class="space-y-4 pt-2">
+          <h3 class="text-base font-bold text-slate-900">C. Hasil perhitungan otomatis</h3>
+
+          <div class="bg-[#f0f7ff] rounded-3xl p-6 sm:p-7 space-y-4 border border-blue-100">
+            <p class="text-xs sm:text-sm text-slate-700 font-medium">Rata-rata estimasi sisa lima komponen</p>
+            
+            <div class="text-4xl sm:text-5xl font-extrabold text-blue-700 tracking-tight" id="calcAvgWaste">
+              74.0%
+            </div>
+
+            <!-- Full Width Blue Progress Bar -->
+            <div class="w-full bg-slate-200/80 rounded-full h-3 overflow-hidden">
+              <div id="calcProgressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: 74%;"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs sm:text-sm text-slate-700 pt-1">
+              <span>Rata-rata dikonsumsi</span>
+              <span id="calcAvgConsumed" class="font-bold text-slate-900">26.0%</span>
+            </div>
+          </div>
+
+          <!-- ACTION BUTTONS: SOLID BLACK PILL + OUTLINE RESET (MATCHING PROTOTYPE IMAGE 5) -->
+          <div class="space-y-3 pt-2">
+            
+            <!-- SIMPAN SIMULASI PENGAMATAN (SOLID BLACK BUTTON) -->
+            <button type="button" onclick="saveCurrentObservation()" class="w-full bg-black hover:bg-slate-800 text-white font-semibold py-3.5 px-6 rounded-full text-sm transition shadow-sm flex items-center justify-center gap-2 active:scale-98">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Simpan simulasi pengamatan</span>
+            </button>
+
+            <!-- SIMPAN & LANJUT KE PASIEN BERIKUTNYA -->
+            <button type="button" onclick="saveAndNextPatient()" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-6 rounded-full text-xs transition shadow-sm flex items-center justify-center gap-2 active:scale-98">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>Simpan &amp; Lanjut Pasien Berikutnya (+1)</span>
+            </button>
+
+            <!-- RESET PENGAMATAN (WHITE PILL BUTTON) -->
+            <button type="button" onclick="resetFormInputs()" class="w-full bg-white hover:bg-slate-50 text-slate-700 font-medium py-3 px-6 rounded-full text-sm border border-slate-200 transition text-center shadow-sm">
+              Reset pengamatan
+            </button>
+
+          </div>
+
+          <!-- TOAST NOTIFICATION -->
+          <div id="toastNotification" class="hidden p-3 bg-blue-50 border border-blue-200 rounded-2xl text-blue-900 text-xs flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+            <span id="toastMsg">Data pasien berhasil disimpan ke sistem!</span>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: REKAPITULASI RATA-RATA SEMUA RUANGAN & GRAFIK (SESUAI PROTOTYPE)   -->
+    <!-- ========================================================================= -->
+    <div id="tab-rekap" class="tab-content hidden space-y-8">
+      
+      <!-- 1. GRAFIK CONTOH SISA MAKANAN BERDASARKAN KOMPONEN (SESUAI PROTOTYPE GAMBAR 6) -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">Contoh sisa makanan berdasarkan komponen</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Data ilustrasi untuk demonstrasi E-Comstock.</p>
+        </div>
+
+        <div class="w-full h-80 pt-2">
+          <canvas id="componentBarChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 2. TABEL LAPORAN REKAPITULASI PENGAMATAN SISA MAKANAN (SESUAI PROTOTYPE GAMBAR 4) -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
+        <h2 class="text-lg sm:text-xl font-bold text-slate-900">Laporan rekapitulasi pengamatan sisa makanan</h2>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-800">
+            <thead>
+              <tr class="border-b border-slate-200 text-xs font-bold text-slate-900 uppercase">
+                <th class="py-3 px-4">Komponen</th>
+                <th class="py-3 px-4 text-right">Sisa makanan</th>
+              </tr>
+            </thead>
+            <tbody id="tableComponentSummaryBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. LAPORAN RATA-RATA SEMUA PASIEN DALAM SETIAP RUANGAN (SESUAI CATATAN KHUSUS USER) -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Laporan rata-rata semua pasien dalam setiap ruangan</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Rekapitulasi sisa makanan per bangsal rawat inap dan kepatuhan SPM Kemenkes (&le; 20%)</p>
+          </div>
+          <button onclick="window.print()" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-full transition flex items-center gap-1.5 self-start sm:self-auto">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Cetak Laporan Ruangan
+          </button>
+        </div>
+
+        <!-- Tabel Rekap Per Ruangan -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+          <table class="w-full text-left text-xs sm:text-sm text-slate-800">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3.5 px-4">Ruang Perawatan</th>
+                <th class="py-3.5 px-4 text-center">Pasien</th>
+                <th class="py-3.5 px-4 text-center">Makanan Pokok</th>
+                <th class="py-3.5 px-4 text-center">Lauk Hewani</th>
+                <th class="py-3.5 px-4 text-center">Lauk Nabati</th>
+                <th class="py-3.5 px-4 text-center">Sayur</th>
+                <th class="py-3.5 px-4 text-center">Buah</th>
+                <th class="py-3.5 px-4 text-center font-bold text-blue-700">Rata-rata Sisa</th>
+                <th class="py-3.5 px-4 text-center">Status SPM (&le;20%)</th>
+              </tr>
+            </thead>
+            <tbody id="tableRoomSummaryBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Horizontal Chart Ruangan -->
+        <div class="pt-4 space-y-2">
+          <h3 class="text-sm font-bold text-slate-800">Perbandingan Rata-rata Sisa Makanan Antar Bangsal</h3>
+          <div class="w-full h-64">
+            <canvas id="roomBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: DATABASE 200 PASIEN & PENGELOLAAN DATA LENGKAP         -->
+    <!-- ============================================================== -->
+    <div id="tab-pasien" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">Database 200 Pasien Rawat Inap</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Daftar lengkap observasi taksiran visual Comstock per pasien.</p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <input type="text" id="searchPatientInput" onkeyup="renderPatientTable()" placeholder="Cari Kode / Ruang..." class="bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-xs text-slate-800 pill-input w-44">
+            
+            <select id="filterPatientRoom" onchange="renderPatientTable()" class="bg-slate-50 border border-slate-200 rounded-full px-4 py-2 text-xs text-slate-800 pill-input cursor-pointer font-medium">
+              <option value="semua">Semua Ruangan</option>
+              <option value="Melati">Melati</option>
+              <option value="Mawar">Mawar</option>
+              <option value="Anggrek">Anggrek</option>
+              <option value="Dahlia">Dahlia</option>
+              <option value="Teratai">Teratai</option>
+              <option value="Flamboyan">Flamboyan</option>
+              <option value="ICU">ICU</option>
+              <option value="VIP">VIP</option>
+            </select>
+
+            <button onclick="addNewPatientPrompt()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-full text-xs transition flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i> Tambah Pasien (+)
+            </button>
+          </div>
+        </div>
+
+        <!-- TABEL 200 PASIEN -->
+        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+          <table class="w-full text-left text-xs sm:text-sm text-slate-800">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-bold text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Kode</th>
+                <th class="py-3 px-4">Ruang</th>
+                <th class="py-3 px-4">Waktu</th>
+                <th class="py-3 px-4">Makanan Pokok</th>
+                <th class="py-3 px-4">L. Hewani</th>
+                <th class="py-3 px-4">L. Nabati</th>
+                <th class="py-3 px-4">Sayur</th>
+                <th class="py-3 px-4">Buah</th>
+                <th class="py-3 px-4 text-center font-bold">Rata-rata</th>
+                <th class="py-3 px-4 text-center">SPM</th>
+                <th class="py-3 px-4 text-right no-print">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tablePatientListBody" class="divide-y divide-slate-100">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 pt-2 no-print">
+          <span id="patientCountDisplay">Menampilkan 0 dari 200 pasien</span>
+          <button onclick="bulkGenerateRemainingPatients()" class="text-blue-700 hover:text-blue-800 font-semibold underline">
+            Generate Otomatis Slot Pasien Lengkap (s.d P200)
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: PEDOMAN & MATRIKS FORM STANDAR KEMENKES (GAMBAR 8)      -->
+    <!-- ============================================================== -->
+    <div id="tab-standar" class="tab-content hidden space-y-6">
+      
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-6">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">Matriks Formulir Taksiran Visual Comstock Standar</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Metode 6 Skala Pengamatan Sisa Makanan Pasien Rawat Inap (Depkes / Kemenkes RI)</p>
+        </div>
+
+        <!-- 6 Skala Penjelasan Cards Sesuai Gambar 8 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Skala 0 (0%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 0%</p>
+            <p class="text-xs text-slate-600">= Makanan habis (dikonsumsi 100%)</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Skala 1 (25%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 25%</p>
+            <p class="text-xs text-slate-600">= Sisa makanan 1/4 porsi</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">Skala 2 (50%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 50%</p>
+            <p class="text-xs text-slate-600">= Sisa makanan 1/2 porsi</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Skala 3 (75%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 75%</p>
+            <p class="text-xs text-slate-600">= Sisa makanan 3/4 porsi</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">Skala 4 (95%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 95%</p>
+            <p class="text-xs text-slate-600">= Sisa makanan hampir utuh (&plusmn; 1 sdm dikonsumsi)</p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">Skala 5 (100%)</span>
+            <p class="font-bold text-slate-900 text-sm">Sisa makanan 100%</p>
+            <p class="text-xs text-slate-600">= Makanan utuh (tidak ada yang dikonsumsi)</p>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-xs text-blue-900 space-y-1">
+          <p class="font-bold">Indikator Standar Pelayanan Minimal (SPM) Gizi RS:</p>
+          <p>Berdasarkan Kepmenkes No. 129/Menkes/SK/II/2008 tentang Standar Pelayanan Minimal Rumah Sakit, indikator sisa makanan yang tidak termakan oleh pasien rawat inap ditetapkan <b>&le; 20%</b>.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==================== PRINT ONLY FORMAL TABLES & SIGNATURE ==================== -->
+  <div class="print-only p-8 print-container space-y-6">
+    <h3 class="text-center font-bold text-base text-black uppercase underline">LEMBAR REKAPITULASI PENGAMATAN SISA MAKANAN PASIEN (E-COMSTOCK)</h3>
+    <p class="text-xs text-center text-slate-600">Periode: Bulan Berjalan &bull; Instalasi Pelayanan Gizi RSUD Sehat Sentosa</p>
+
+    <div class="mt-4">
+      <h4 class="font-bold text-sm text-black mb-2">1. REKAPITULASI RATA-RATA SISA MAKANAN PER RUANGAN RAWAT INAP</h4>
+      <table class="w-full text-xs" id="printTableRoom">
+        <!-- Rendered via JS -->
+      </table>
+    </div>
+
+    <div class="mt-6">
+      <h4 class="font-bold text-sm text-black mb-2">2. DISTRIBUSI SISA MAKANAN 5 KOMPONEN MENU</h4>
+      <table class="w-full text-xs" id="printTableComponent">
+        <!-- Rendered via JS -->
+      </table>
+    </div>
+
+    <div class="mt-12 flex justify-between text-xs pt-8">
+      <div class="text-center w-64">
+        <p>Mengetahui,</p>
+        <p class="font-bold">Kepala Instalasi Gizi RS</p>
+        <div class="h-20"></div>
+        <p class="font-bold underline">dr. Hj. Ratna Sari, M.Gizi, Sp.GK</p>
+        <p>NIP. 19820512 200801 2 007</p>
+      </div>
+
+      <div class="text-center w-64">
+        <p>Yogyakarta, <span id="printCurrentDate">21 November 2026</span></p>
+        <p class="font-bold">Petugas Pengamat Gizi / Enumerator</p>
+        <div class="h-20"></div>
+        <p class="font-bold underline">Petugas Gizi Pelaksana</p>
+        <p>Tenaga Dietisien Rawat Inap</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print mt-auto">
+    <p class="font-medium">E-COMSTOCK &copy; 2026 &bull; Electronic Food Waste Monitoring &bull; Instalasi Gizi Rumah Sakit</p>
+  </footer>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT SYSTEM ENGINE (CLEAN & COMPLETE)                    -->
+  <!-- ============================================================== -->
+  <script>
+    const STORAGE_KEY_OBSERVATIONS = 'ecomstock_rs_clean_v3';
+    const MAX_PATIENTS = 200;
+    const ROOM_LIST = ['Melati', 'Mawar', 'Anggrek', 'Dahlia', 'Teratai', 'Flamboyan', 'ICU', 'VIP'];
+
+    // Initial Pre-populated Demo Dataset matching User Prototype (Nasi/Pokok 50%, Hewani 75%, Nabati 75%, Sayur 95%, Buah 75% = 74.0%)
+    const defaultInitialDemo = [
+      {
+        code: 'P001', room: 'Melati', meal: 'Pagi', observer: 'Petugas Gizi', date: getTodayDate(),
+        pokok: { name: 'Nasi Putih Pulen', scale: 50 },
+        hewani: { name: 'Ayam Panggang Semur', scale: 75 },
+        nabati: { name: 'Tempe Bacem Basah', scale: 75 },
+        sayur: { name: 'Sayur Bening Bayam Labu', scale: 95 },
+        buah: { name: 'Semangka Merah Segar', scale: 75 },
+        avgWaste: 74.0, avgConsumed: 26.0
+      },
+      {
+        code: 'P002', room: 'Melati', meal: 'Siang', observer: 'Petugas Gizi', date: getTodayDate(),
+        pokok: { name: 'Nasi Tim Daging', scale: 0 },
+        hewani: { name: 'Telur Rebus Kecap', scale: 25 },
+        nabati: { name: 'Tahu Bacem Gurih', scale: 50 },
+        sayur: { name: 'Sop Wortel Oyong', scale: 75 },
+        buah: { name: 'Pisang Barangan', scale: 25 },
+        avgWaste: 35.0, avgConsumed: 65.0
+      },
+      {
+        code: 'P003', room: 'Mawar', meal: 'Pagi', observer: 'Petugas Gizi', date: getTodayDate(),
+        pokok: { name: 'Bubur Ayam Lembut', scale: 0 },
+        hewani: { name: 'Fillet Ikan Kukus', scale: 0 },
+        nabati: { name: 'Tahu Halus Rebus', scale: 25 },
+        sayur: { name: 'Bening Labu Manis', scale: 25 },
+        buah: { name: 'Melon Potong', scale: 0 },
+        avgWaste: 10.0, avgConsumed: 90.0
+      },
+      {
+        code: 'P004', room: 'Mawar', meal: 'Siang', observer: 'Petugas Gizi', date: getTodayDate(),
+        pokok: { name: 'Nasi Putih', scale: 25 },
+        hewani: { name: 'Daging Semur Empuk', scale: 50 },
+        nabati: { name: 'Tempe Mendoan Oven', scale: 25 },
+        sayur: { name: 'Sayur Asem Jakarta', scale: 50 },
+        buah: { name: 'Pepaya Iris Segar', scale: 0 },
+        avgWaste: 30.0, avgConsumed: 70.0
+      },
+      {
+        code: 'P005', room: 'Anggrek', meal: 'Pagi', observer: 'Hendra, S.Tr.Gz', date: getTodayDate(),
+        pokok: { name: 'Nasi Merah Organik', scale: 0 },
+        hewani: { name: 'Daging Gulung Telur', scale: 0 },
+        nabati: { name: 'Tahu Isi Sayur', scale: 0 },
+        sayur: { name: 'Bayam Jagung Manis', scale: 25 },
+        buah: { name: 'Apel Fuji Iris', scale: 0 },
+        avgWaste: 5.0, avgConsumed: 95.0
+      },
+      {
+        code: 'P006', room: 'Dahlia', meal: 'Siang', observer: 'Rina Marlina, S.Gz', date: getTodayDate(),
+        pokok: { name: 'Nasi Putih Pulen', scale: 50 },
+        hewani: { name: 'Ayam Goreng Lengkuas', scale: 75 },
+        nabati: { name: 'Tempe Orek Basah', scale: 50 },
+        sayur: { name: 'Sop Sayur Campur', scale: 75 },
+        buah: { name: 'Semangka Manis', scale: 25 },
+        avgWaste: 55.0, avgConsumed: 45.0
+      },
+      {
+        code: 'P007', room: 'Teratai', meal: 'Pagi', observer: 'Petugas Gizi Anak', date: getTodayDate(),
+        pokok: { name: 'Bubur Halus Wortel', scale: 0 },
+        hewani: { name: 'Bola Daging Cincang', scale: 0 },
+        nabati: { name: 'Tahu Sutra Kukus', scale: 0 },
+        sayur: { name: 'Sop Kaldu Brokoli', scale: 25 },
+        buah: { name: 'Puree Alpukat Manis', scale: 0 },
+        avgWaste: 5.0, avgConsumed: 95.0
+      },
+      {
+        code: 'P008', room: 'Flamboyan', meal: 'Siang', observer: 'Petugas Gizi', date: getTodayDate(),
+        pokok: { name: 'Nasi Tim Ayam', scale: 25 },
+        hewani: { name: 'Ikan Bakar Madu', scale: 50 },
+        nabati: { name: 'Perkedel Tahu', scale: 25 },
+        sayur: { name: 'Tumis Labu Siam', scale: 50 },
+        buah: { name: 'Pisang Raja', scale: 0 },
+        avgWaste: 30.0, avgConsumed: 70.0
+      },
+      {
+        code: 'P009', room: 'ICU', meal: 'Pagi', observer: 'Dietisien ICU', date: getTodayDate(),
+        pokok: { name: 'Enteral Blenderized', scale: 0 },
+        hewani: { name: 'Susu Formula Telur', scale: 0 },
+        nabati: { name: 'Sari Kedelai', scale: 0 },
+        sayur: { name: 'Ekstrak Sayur Hijau', scale: 25 },
+        buah: { name: 'Jus Buah Saring', scale: 0 },
+        avgWaste: 5.0, avgConsumed: 95.0
+      },
+      {
+        code: 'P010', room: 'VIP', meal: 'Siang', observer: 'Hendra, S.Tr.Gz', date: getTodayDate(),
+        pokok: { name: 'Nasi Pandan Wangi', scale: 0 },
+        hewani: { name: 'Salmon Panggang Lemon', scale: 0 },
+        nabati: { name: 'Tahu Brokoli Saus Tiram', scale: 0 },
+        sayur: { name: 'Sup Asparagus Jagung', scale: 0 },
+        buah: { name: 'Anggur Merah Manis', scale: 0 },
+        avgWaste: 0.0, avgConsumed: 100.0
+      }
+    ];
+
+    let observations = JSON.parse(localStorage.getItem(STORAGE_KEY_OBSERVATIONS)) || defaultInitialDemo;
+    let chartComponent = null;
+    let chartRoom = null;
+
+    function getTodayDate() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function formatIndonesianDate(d) {
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('obsDate').value = getTodayDate();
+      document.getElementById('printCurrentDate').innerText = formatIndonesianDate(new Date());
+
+      loadPatientToForm('P001');
+      renderAllReports();
+      renderPatientTable();
+      lucide.createIcons();
+    });
+
+    // TAB SWITCHING
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'border-blue-600', 'text-blue-700');
+        btn.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active', 'border-blue-600', 'text-blue-700');
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+      }
+
+      if (tabId === 'rekap') {
+        renderAllReports();
+      } else if (tabId === 'pasien') {
+        renderPatientTable();
+      }
+      lucide.createIcons();
+    }
+
+    // REAL-TIME FORM COMSTOCK CALCULATION
+    function calculateFormComstock() {
+      const p_pokok = parseFloat(document.getElementById('scale_pokok').value) || 0;
+      const p_hewani = parseFloat(document.getElementById('scale_hewani').value) || 0;
+      const p_nabati = parseFloat(document.getElementById('scale_nabati').value) || 0;
+      const p_sayur = parseFloat(document.getElementById('scale_sayur').value) || 0;
+      const p_buah = parseFloat(document.getElementById('scale_buah').value) || 0;
+
+      // Update Labels
+      document.getElementById('label_pokok').innerText = `${p_pokok}%`;
+      document.getElementById('label_hewani').innerText = `${p_hewani}%`;
+      document.getElementById('label_nabati').innerText = `${p_nabati}%`;
+      document.getElementById('label_sayur').innerText = `${p_sayur}%`;
+      document.getElementById('label_buah').innerText = `${p_buah}%`;
+
+      // Update Progress Bars (Green solid matching prototype)
+      document.getElementById('bar_pokok').style.width = `${p_pokok}%`;
+      document.getElementById('bar_hewani').style.width = `${p_hewani}%`;
+      document.getElementById('bar_nabati').style.width = `${p_nabati}%`;
+      document.getElementById('bar_sayur').style.width = `${p_sayur}%`;
+      document.getElementById('bar_buah').style.width = `${p_buah}%`;
+
+      // Section C Calculation
+      const avgWaste = (p_pokok + p_hewani + p_nabati + p_sayur + p_buah) / 5;
+      const avgConsumed = Math.max(0, 100 - avgWaste);
+
+      document.getElementById('calcAvgWaste').innerText = `${avgWaste.toFixed(1)}%`;
+      document.getElementById('calcAvgConsumed').innerText = `${avgConsumed.toFixed(1)}%`;
+      document.getElementById('calcProgressBar').style.width = `${avgWaste}%`;
+    }
+
+    // NORMALIZE PATIENT CODE (P001 - P200)
+    function normalizePatientCode(str) {
+      if (!str) return 'P001';
+      str = str.toUpperCase().trim();
+      const num = parseInt(str.replace(/\D/g, '')) || 1;
+      return `P${String(num).padStart(3, '0')}`;
+    }
+
+    // LOAD PATIENT TO FORM
+    function loadPatientToForm(code) {
+      code = normalizePatientCode(code);
+      document.getElementById('patientCode').value = code;
+
+      const existing = observations.find(p => p.code === code);
+      if (existing) {
+        document.getElementById('roomName').value = existing.room;
+        setMealRadio(existing.meal);
+        document.getElementById('observerName').value = existing.observer || 'Petugas Gizi';
+        document.getElementById('obsDate').value = existing.date || getTodayDate();
+
+        document.getElementById('menu_pokok').value = existing.pokok?.name || 'Nasi Putih Pulen';
+        document.getElementById('scale_pokok').value = existing.pokok?.scale ?? 50;
+
+        document.getElementById('menu_hewani').value = existing.hewani?.name || 'Ayam Panggang Semur';
+        document.getElementById('scale_hewani').value = existing.hewani?.scale ?? 75;
+
+        document.getElementById('menu_nabati').value = existing.nabati?.name || 'Tempe Bacem Basah';
+        document.getElementById('scale_nabati').value = existing.nabati?.scale ?? 75;
+
+        document.getElementById('menu_sayur').value = existing.sayur?.name || 'Sayur Bening Bayam Labu';
+        document.getElementById('scale_sayur').value = existing.sayur?.scale ?? 95;
+
+        document.getElementById('menu_buah').value = existing.buah?.name || 'Semangka Merah Segar';
+        document.getElementById('scale_buah').value = existing.buah?.scale ?? 75;
+      }
+
+      calculateFormComstock();
+    }
+
+    function onPatientCodeChange() {
+      const code = document.getElementById('patientCode').value.trim();
+      loadPatientToForm(code);
+    }
+
+    function setMealRadio(val) {
+      const radios = document.querySelectorAll('input[name="mealTime"]');
+      radios.forEach(r => {
+        r.checked = (r.value === val);
+      });
+    }
+
+    // TOMBOL "+" TAMBAH PASIEN (AUTO-INCREMENT HINGGA P200 SESUAI CATATAN USER)
+    function addNewPatientPrompt() {
+      let nextNum = 1;
+      const occupied = new Set(observations.map(p => parseInt(p.code.replace(/\D/g, ''))));
+      while (nextNum <= MAX_PATIENTS && occupied.has(nextNum)) {
+        nextNum++;
+      }
+
+      if (nextNum > MAX_PATIENTS) {
+        alert('Kapasitas maksimum 200 pasien telah tercapai!');
+        return;
+      }
+
+      const nextCode = `P${String(nextNum).padStart(3, '0')}`;
+      loadPatientToForm(nextCode);
+      showToast(`Menyiapkan lembar pengamatan baru untuk Kode Pasien ${nextCode}`);
+    }
+
+    function navigatePatient(direction) {
+      const currentCode = document.getElementById('patientCode').value.trim();
+      const currentNum = parseInt(currentCode.replace(/\D/g, '')) || 1;
+      let targetNum = currentNum + direction;
+      if (targetNum < 1) targetNum = 1;
+      if (targetNum > MAX_PATIENTS) targetNum = MAX_PATIENTS;
+      loadPatientToForm(`P${String(targetNum).padStart(3, '0')}`);
+    }
+
+    // SAVE OBSERVATION
+    function saveCurrentObservation() {
+      const code = normalizePatientCode(document.getElementById('patientCode').value);
+      const room = document.getElementById('roomName').value;
+      const meal = document.querySelector('input[name="mealTime"]:checked')?.value || 'Pagi';
+      const observer = document.getElementById('observerName').value.trim() || 'Petugas Gizi';
+      const date = document.getElementById('obsDate').value || getTodayDate();
+
+      const pokokScale = parseFloat(document.getElementById('scale_pokok').value) || 0;
+      const hewaniScale = parseFloat(document.getElementById('scale_hewani').value) || 0;
+      const nabatiScale = parseFloat(document.getElementById('scale_nabati').value) || 0;
+      const sayurScale = parseFloat(document.getElementById('scale_sayur').value) || 0;
+      const buahScale = parseFloat(document.getElementById('scale_buah').value) || 0;
+
+      const avgWaste = parseFloat(((pokokScale + hewaniScale + nabatiScale + sayurScale + buahScale) / 5).toFixed(1));
+      const avgConsumed = parseFloat((100 - avgWaste).toFixed(1));
+
+      const newRecord = {
+        code,
+        room,
+        meal,
+        observer,
+        date,
+        pokok: { name: document.getElementById('menu_pokok').value.trim() || 'Makanan Pokok', scale: pokokScale },
+        hewani: { name: document.getElementById('menu_hewani').value.trim() || 'Lauk Hewani', scale: hewaniScale },
+        nabati: { name: document.getElementById('menu_nabati').value.trim() || 'Lauk Nabati', scale: nabatiScale },
+        sayur: { name: document.getElementById('menu_sayur').value.trim() || 'Sayur', scale: sayurScale },
+        buah: { name: document.getElementById('menu_buah').value.trim() || 'Buah', scale: buahScale },
+        avgWaste,
+        avgConsumed
+      };
+
+      const idx = observations.findIndex(p => p.code === code);
+      if (idx >= 0) {
+        observations[idx] = newRecord;
+      } else {
+        observations.push(newRecord);
+      }
+
+      observations.sort((a, b) => {
+        return (parseInt(a.code.replace(/\D/g, '')) || 0) - (parseInt(b.code.replace(/\D/g, '')) || 0);
+      });
+
+      localStorage.setItem(STORAGE_KEY_OBSERVATIONS, JSON.stringify(observations));
+      showToast(`Data pengamatan pasien ${code} (${room}) berhasil disimpan!`);
+
+      renderAllReports();
+      renderPatientTable();
+    }
+
+    function saveAndNextPatient() {
+      saveCurrentObservation();
+      const currentCode = document.getElementById('patientCode').value.trim();
+      const currentNum = parseInt(currentCode.replace(/\D/g, '')) || 1;
+      const nextNum = Math.min(MAX_PATIENTS, currentNum + 1);
+      loadPatientToForm(`P${String(nextNum).padStart(3, '0')}`);
+    }
+
+    function resetFormInputs() {
+      if (confirm('Reset input skala sisa makanan pasien ini ke 0%?')) {
+        document.getElementById('scale_pokok').value = '0';
+        document.getElementById('scale_hewani').value = '0';
+        document.getElementById('scale_nabati').value = '0';
+        document.getElementById('scale_sayur').value = '0';
+        document.getElementById('scale_buah').value = '0';
+        calculateFormComstock();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMsg').innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    // RENDER REPORTS & CHARTS (TAB 2)
+    function renderAllReports() {
+      // 1. Render Table Component Summary (Matching Prototype Image 4)
+      const tbodyComp = document.getElementById('tableComponentSummaryBody');
+      tbodyComp.innerHTML = '';
+
+      let totP = 0, totH = 0, totN = 0, totS = 0, totB = 0;
+      observations.forEach(p => {
+        totP += p.pokok.scale; totH += p.hewani.scale; totN += p.nabati.scale; totS += p.sayur.scale; totB += p.buah.scale;
+      });
+
+      const n = observations.length || 1;
+      const comps = [
+        { name: 'Nasi / Makanan Pokok', val: Math.round(totP / n) },
+        { name: 'Lauk hewani', val: Math.round(totH / n) },
+        { name: 'Lauk nabati', val: Math.round(totN / n) },
+        { name: 'Sayur', val: Math.round(totS / n) },
+        { name: 'Buah', val: Math.round(totB / n) }
+      ];
+
+      comps.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-medium text-slate-800">${c.name}</td>
+          <td class="py-3 px-4 text-right font-medium text-slate-800">${c.val}%</td>
+        `;
+        tbodyComp.appendChild(tr);
+      });
+
+      const grandAvg = Math.round((comps.reduce((acc, cur) => acc + cur.val, 0)) / comps.length);
+      const totalRow = document.createElement('tr');
+      totalRow.className = 'font-bold border-t border-slate-200 text-slate-900';
+      totalRow.innerHTML = `
+        <td class="py-3 px-4">Rata-rata</td>
+        <td class="py-3 px-4 text-right">${grandAvg}%</td>
+      `;
+      tbodyComp.appendChild(totalRow);
+
+      // 2. Render Chart Component Bar (Matching Prototype Image 6)
+      const ctxComp = document.getElementById('componentBarChart').getContext('2d');
+      if (chartComponent) chartComponent.destroy();
+
+      chartComponent = new Chart(ctxComp, {
+        type: 'bar',
+        data: {
+          labels: ['Nasi / Pokok', 'Lauk hewani', 'Lauk nabati', 'Sayur', 'Buah'],
+          datasets: [{
+            label: 'Sisa makanan (%)',
+            data: comps.map(c => c.val),
+            backgroundColor: '#60a5fa', // Soft blue matching prototype image 6
+            hoverBackgroundColor: '#3b82f6',
+            borderRadius: 4,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ${ctx.parsed.y}%`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 80,
+              ticks: {
+                stepSize: 20,
+                color: '#64748b',
+                callback: val => `${val}%`
+              },
+              grid: {
+                color: '#f1f5f9',
+                borderDash: [4, 4]
+              }
+            },
+            x: {
+              ticks: { color: '#0f172a', font: { weight: '500' } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+
+      // 3. Render Table Room Summary (CATATAN UTAMA USER)
+      renderRoomTable();
+
+      // 4. Update Print Tables
+      renderPrintTables();
+    }
+
+    function renderRoomTable() {
+      const tbody = document.getElementById('tableRoomSummaryBody');
+      tbody.innerHTML = '';
+
+      const roomData = {};
+      ROOM_LIST.forEach(r => {
+        roomData[r] = { count: 0, pokok: 0, hewani: 0, nabati: 0, sayur: 0, buah: 0, totalWaste: 0 };
+      });
+
+      observations.forEach(p => {
+        if (!roomData[p.room]) {
+          roomData[p.room] = { count: 0, pokok: 0, hewani: 0, nabati: 0, sayur: 0, buah: 0, totalWaste: 0 };
+        }
+        const rm = roomData[p.room];
+        rm.count++;
+        rm.pokok += p.pokok.scale;
+        rm.hewani += p.hewani.scale;
+        rm.nabati += p.nabati.scale;
+        rm.sayur += p.sayur.scale;
+        rm.buah += p.buah.scale;
+        rm.totalWaste += p.avgWaste;
+      });
+
+      const roomLabels = [];
+      const roomValues = [];
+
+      Object.keys(roomData).forEach(rmName => {
+        const stats = roomData[rmName];
+        if (stats.count > 0) {
+          const avgP = (stats.pokok / stats.count).toFixed(1);
+          const avgH = (stats.hewani / stats.count).toFixed(1);
+          const avgN = (stats.nabati / stats.count).toFixed(1);
+          const avgS = (stats.sayur / stats.count).toFixed(1);
+          const avgB = (stats.buah / stats.count).toFixed(1);
+          const avgW = (stats.totalWaste / stats.count).toFixed(1);
+          const isOK = parseFloat(avgW) <= 20;
+
+          roomLabels.push(rmName);
+          roomValues.push(parseFloat(avgW));
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-3.5 px-4 font-bold text-slate-900">${rmName}</td>
+            <td class="py-3.5 px-4 text-center font-medium">${stats.count} Pasien</td>
+            <td class="py-3.5 px-4 text-center">${avgP}%</td>
+            <td class="py-3.5 px-4 text-center">${avgH}%</td>
+            <td class="py-3.5 px-4 text-center">${avgN}%</td>
+            <td class="py-3.5 px-4 text-center">${avgS}%</td>
+            <td class="py-3.5 px-4 text-center">${avgB}%</td>
+            <td class="py-3.5 px-4 text-center font-extrabold ${isOK ? 'text-blue-700' : 'text-rose-600'}">${avgW}%</td>
+            <td class="py-3.5 px-4 text-center">
+              <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${isOK ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-rose-100 text-rose-800'}">
+                ${isOK ? '✓ Memenuhi' : '⚠ > 20% SPM'}
+              </span>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      // Chart Room Bar
+      const ctxRoom = document.getElementById('roomBarChart').getContext('2d');
+      if (chartRoom) chartRoom.destroy();
+
+      chartRoom = new Chart(ctxRoom, {
+        type: 'bar',
+        data: {
+          labels: roomLabels,
+          datasets: [{
+            label: 'Rata-rata sisa per ruangan (%)',
+            data: roomValues,
+            backgroundColor: roomValues.map(v => v <= 20 ? '#2563eb' : '#f43f5e'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { callback: v => `${v}%` },
+              grid: { color: '#f1f5f9' }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // RENDER PATIENT TABLE (TAB 3)
+    function renderPatientTable() {
+      const tbody = document.getElementById('tablePatientListBody');
+      tbody.innerHTML = '';
+
+      const searchVal = document.getElementById('searchPatientInput').value.toLowerCase().trim();
+      const roomFilter = document.getElementById('filterPatientRoom').value;
+
+      let count = 0;
+      observations.forEach(p => {
+        const matchesSearch = p.code.toLowerCase().includes(searchVal) || p.room.toLowerCase().includes(searchVal);
+        const matchesRoom = (roomFilter === 'semua' || p.room === roomFilter);
+        const isOK = p.avgWaste <= 20;
+
+        if (matchesSearch && matchesRoom) {
+          count++;
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-bold text-blue-700">${p.code}</td>
+            <td class="py-3 px-4 font-medium">${p.room}</td>
+            <td class="py-3 px-4 text-slate-600">${p.meal}</td>
+            <td class="py-3 px-4" title="${p.pokok.name}">
+              <span class="font-bold">${p.pokok.scale}%</span>
+              <span class="text-[10px] text-slate-500 block truncate max-w-[90px]">${p.pokok.name}</span>
+            </td>
+            <td class="py-3 px-4" title="${p.hewani.name}">
+              <span class="font-bold">${p.hewani.scale}%</span>
+              <span class="text-[10px] text-slate-500 block truncate max-w-[90px]">${p.hewani.name}</span>
+            </td>
+            <td class="py-3 px-4" title="${p.nabati.name}">
+              <span class="font-bold">${p.nabati.scale}%</span>
+              <span class="text-[10px] text-slate-500 block truncate max-w-[90px]">${p.nabati.name}</span>
+            </td>
+            <td class="py-3 px-4" title="${p.sayur.name}">
+              <span class="font-bold">${p.sayur.scale}%</span>
+              <span class="text-[10px] text-slate-500 block truncate max-w-[90px]">${p.sayur.name}</span>
+            </td>
+            <td class="py-3 px-4" title="${p.buah.name}">
+              <span class="font-bold">${p.buah.scale}%</span>
+              <span class="text-[10px] text-slate-500 block truncate max-w-[90px]">${p.buah.name}</span>
+            </td>
+            <td class="py-3 px-4 text-center font-bold ${isOK ? 'text-blue-700' : 'text-rose-600'}">${p.avgWaste}%</td>
+            <td class="py-3 px-4 text-center">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isOK ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-rose-100 text-rose-800'}">
+                ${isOK ? 'OK' : '>20%'}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right no-print">
+              <div class="inline-flex gap-1">
+                <button onclick="editPatient('${p.code}')" class="px-2.5 py-1 text-xs text-blue-700 hover:bg-blue-50 rounded-lg font-semibold border border-blue-200">
+                  Edit
+                </button>
+                <button onclick="deletePatient('${p.code}')" class="px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded-lg">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      document.getElementById('patientCountDisplay').innerText = `Menampilkan ${count} dari ${observations.length} pasien terdaftar (kapasitas s.d 200 pasien)`;
+      lucide.createIcons();
+    }
+
+    function editPatient(code) {
+      switchTab('form');
+      loadPatientToForm(code);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deletePatient(code) {
+      if (confirm(`Hapus data pengamatan untuk Pasien ${code}?`)) {
+        observations = observations.filter(p => p.code !== code);
+        localStorage.setItem(STORAGE_KEY_OBSERVATIONS, JSON.stringify(observations));
+        renderAllReports();
+        renderPatientTable();
+        showToast(`Data Pasien ${code} berhasil dihapus.`);
+      }
+    }
+
+    // BULK GENERATE PASIEN LENGKAP HINGGA P200 (CATATAN KHUSUS USER)
+    function bulkGenerateRemainingPatients() {
+      const currentCount = observations.length;
+      if (currentCount >= MAX_PATIENTS) {
+        alert('Seluruh 200 slot pasien sudah terisi!');
+        return;
+      }
+
+      if (confirm(`Generate otomatis sisa pasien hingga mencapai 200 pasien (${MAX_PATIENTS - currentCount} pasien simulasi)?`)) {
+        const sampleMenus = {
+          pokok: ['Nasi Putih Pulen', 'Nasi Tim Ayam', 'Bubur Beras Lembut', 'Kentang Puree Panggang'],
+          hewani: ['Ayam Bakar Kecap', 'Ikan Kakap Kukus', 'Daging Semur Empuk', 'Telur Balado Ringan'],
+          nabati: ['Tempe Bacem Basah', 'Tahu Bacem Gurih', 'Tahu Sutra Kukus', 'Perkedel Tempe'],
+          sayur: ['Sayur Bening Bayam', 'Sop Sayuran Campur', 'Tumis Labu Siam', 'Sayur Asem Segar'],
+          buah: ['Pisang Raja', 'Melon Segar', 'Pepaya Iris Dingin', 'Semangka Merah']
+        };
+
+        const scales = [0, 25, 50, 75, 95, 100];
+        const meals = ['Pagi', 'Siang', 'Malam'];
+
+        for (let i = 1; i <= MAX_PATIENTS; i++) {
+          const code = `P${String(i).padStart(3, '0')}`;
+          if (!observations.some(p => p.code === code)) {
+            const randomRoom = ROOM_LIST[Math.floor(Math.random() * ROOM_LIST.length)];
+            const randomMeal = meals[Math.floor(Math.random() * meals.length)];
+            
+            const sp_pokok = scales[Math.floor(Math.random() * scales.length)];
+            const sp_hewani = scales[Math.floor(Math.random() * scales.length)];
+            const sp_nabati = scales[Math.floor(Math.random() * scales.length)];
+            const sp_sayur = scales[Math.floor(Math.random() * scales.length)];
+            const sp_buah = scales[Math.floor(Math.random() * scales.length)];
+
+            const avgWaste = parseFloat(((sp_pokok + sp_hewani + sp_nabati + sp_sayur + sp_buah) / 5).toFixed(1));
+            const avgConsumed = parseFloat((100 - avgWaste).toFixed(1));
+
+            observations.push({
+              code,
+              room: randomRoom,
+              meal: randomMeal,
+              observer: 'Petugas Gizi',
+              date: getTodayDate(),
+              pokok: { name: sampleMenus.pokok[Math.floor(Math.random() * sampleMenus.pokok.length)], scale: sp_pokok },
+              hewani: { name: sampleMenus.hewani[Math.floor(Math.random() * sampleMenus.hewani.length)], scale: sp_hewani },
+              nabati: { name: sampleMenus.nabati[Math.floor(Math.random() * sampleMenus.nabati.length)], scale: sp_nabati },
+              sayur: { name: sampleMenus.sayur[Math.floor(Math.random() * sampleMenus.sayur.length)], scale: sp_sayur },
+              buah: { name: sampleMenus.buah[Math.floor(Math.random() * sampleMenus.buah.length)], scale: sp_buah },
+              avgWaste,
+              avgConsumed
+            });
+          }
+        }
+
+        observations.sort((a, b) => (parseInt(a.code.replace(/\D/g, '')) || 0) - (parseInt(b.code.replace(/\D/g, '')) || 0));
+        localStorage.setItem(STORAGE_KEY_OBSERVATIONS, JSON.stringify(observations));
+
+        renderAllReports();
+        renderPatientTable();
+        showToast('Berhasil meng-generate data lengkap hingga 200 pasien!');
+      }
+    }
+
+    // RENDER PRINT TABLES
+    function renderPrintTables() {
+      const printRoom = document.getElementById('printTableRoom');
+      const printComp = document.getElementById('printTableComponent');
+      if (!printRoom || !printComp) return;
+
+      let roomHtml = `
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th>Ruangan</th>
+            <th>Pasien</th>
+            <th>Makanan Pokok</th>
+            <th>Lauk Hewani</th>
+            <th>Lauk Nabati</th>
+            <th>Sayur</th>
+            <th>Buah</th>
+            <th>Rata-rata Sisa (%)</th>
+            <th>Status SPM</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      ROOM_LIST.forEach(rmName => {
+        const subset = observations.filter(p => p.room === rmName);
+        if (subset.length > 0) {
+          const avgP = (subset.reduce((a, b) => a + b.pokok.scale, 0) / subset.length).toFixed(1);
+          const avgH = (subset.reduce((a, b) => a + b.hewani.scale, 0) / subset.length).toFixed(1);
+          const avgN = (subset.reduce((a, b) => a + b.nabati.scale, 0) / subset.length).toFixed(1);
+          const avgS = (subset.reduce((a, b) => a + b.sayur.scale, 0) / subset.length).toFixed(1);
+          const avgB = (subset.reduce((a, b) => a + b.buah.scale, 0) / subset.length).toFixed(1);
+          const avgW = (subset.reduce((a, b) => a + b.avgWaste, 0) / subset.length).toFixed(1);
+          const isOK = parseFloat(avgW) <= 20;
+
+          roomHtml += `
+            <tr>
+              <td><b>${rmName}</b></td>
+              <td style="text-align:center;">${subset.length} Pasien</td>
+              <td style="text-align:center;">${avgP}%</td>
+              <td style="text-align:center;">${avgH}%</td>
+              <td style="text-align:center;">${avgN}%</td>
+              <td style="text-align:center;">${avgS}%</td>
+              <td style="text-align:center;">${avgB}%</td>
+              <td style="text-align:center; font-weight:bold;">${avgW}%</td>
+              <td style="text-align:center;">${isOK ? 'MEMENUHI (&le;20%)' : 'MELEBIHI SPM'}</td>
+            </tr>
+          `;
+        }
+      });
+      roomHtml += `</tbody>`;
+      printRoom.innerHTML = roomHtml;
+
+      // Print Comp
+      let totP = 0, totH = 0, totN = 0, totS = 0, totB = 0;
+      observations.forEach(p => {
+        totP += p.pokok.scale; totH += p.hewani.scale; totN += p.nabati.scale; totS += p.sayur.scale; totB += p.buah.scale;
+      });
+      const n = observations.length || 1;
+      const comps = [
+        { name: 'Makanan Pokok (Nasi / Pengganti)', val: (totP / n).toFixed(1) },
+        { name: 'Lauk Hewani (Daging / Ayam / Ikan / Telur)', val: (totH / n).toFixed(1) },
+        { name: 'Lauk Nabati (Tahu / Tempe)', val: (totN / n).toFixed(1) },
+        { name: 'Sayur (Sayuran Kuah / Tumis)', val: (totS / n).toFixed(1) },
+        { name: 'Buah (Buah Potong / Utuh)', val: (totB / n).toFixed(1) }
+      ];
+
+      let compHtml = `
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th>Komponen Makanan</th>
+            <th>Taksiran Rata-rata Sisa (%)</th>
+            <th>Rata-rata Dikonsumsi Pasien (%)</th>
+            <th>Ambang Batas Standar SPM</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+      comps.forEach(c => {
+        compHtml += `
+          <tr>
+            <td>${c.name}</td>
+            <td style="text-align:center; font-weight:bold;">${c.val}%</td>
+            <td style="text-align:center;">${(100 - parseFloat(c.val)).toFixed(1)}%</td>
+            <td style="text-align:center;">&le; 20%</td>
+          </tr>
+        `;
+      });
+      compHtml += `</tbody>`;
+      printComp.innerHTML = compHtml;
+    }
+
+    // EXPORT TO MS WORD (.DOC)
+    function exportToWord() {
+      const dateStr = formatIndonesianDate(new Date());
+      let roomRows = '';
+      ROOM_LIST.forEach(rmName => {
+        const subset = observations.filter(p => p.room === rmName);
+        if (subset.length > 0) {
+          const avgP = (subset.reduce((a, b) => a + b.pokok.scale, 0) / subset.length).toFixed(1);
+          const avgH = (subset.reduce((a, b) => a + b.hewani.scale, 0) / subset.length).toFixed(1);
+          const avgN = (subset.reduce((a, b) => a + b.nabati.scale, 0) / subset.length).toFixed(1);
+          const avgS = (subset.reduce((a, b) => a + b.sayur.scale, 0) / subset.length).toFixed(1);
+          const avgB = (subset.reduce((a, b) => a + b.buah.scale, 0) / subset.length).toFixed(1);
+          const avgW = (subset.reduce((a, b) => a + b.avgWaste, 0) / subset.length).toFixed(1);
+          const isOK = parseFloat(avgW) <= 20;
+
+          roomRows += `
+            <tr>
+              <td style="border:1px solid #444; padding:6px;"><b>${rmName}</b></td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${subset.length}</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${avgP}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${avgH}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${avgN}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${avgS}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${avgB}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center; font-weight:bold;">${avgW}%</td>
+              <td style="border:1px solid #444; padding:6px; text-align:center;">${isOK ? 'MEMENUHI (&le;20%)' : 'MELEBIHI SPM'}</td>
+            </tr>
+          `;
+        }
+      });
+
+      let patientRows = '';
+      observations.slice(0, 100).forEach(p => {
+        patientRows += `
+          <tr>
+            <td style="border:1px solid #666; padding:4px;">${p.code}</td>
+            <td style="border:1px solid #666; padding:4px;">${p.room}</td>
+            <td style="border:1px solid #666; padding:4px;">${p.meal}</td>
+            <td style="border:1px solid #666; padding:4px;">${p.pokok.name} (${p.pokok.scale}%)</td>
+            <td style="border:1px solid #666; padding:4px;">${p.hewani.name} (${p.hewani.scale}%)</td>
+            <td style="border:1px solid #666; padding:4px;">${p.nabati.name} (${p.nabati.scale}%)</td>
+            <td style="border:1px solid #666; padding:4px;">${p.sayur.name} (${p.sayur.scale}%)</td>
+            <td style="border:1px solid #666; padding:4px;">${p.buah.name} (${p.buah.scale}%)</td>
+            <td style="border:1px solid #666; padding:4px; text-align:center; font-weight:bold;">${p.avgWaste}%</td>
+          </tr>
+        `;
+      });
+
+      const wordHTML = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset='utf-8'>
+          <title>Laporan Rekapitulasi E-Comstock</title>
+          <style>
+            body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: #000; line-height: 1.4; }
+            table { border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 15px; }
+            th { background-color: #f1f5f9; border: 1px solid #333; padding: 7px; text-align: center; }
+            td { border: 1px solid #333; padding: 6px; }
+            h2, h3, h4 { margin: 4px 0; }
+            .header-kop { text-align: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="header-kop">
+            <h2 style="text-transform:uppercase;">RUMAH SAKIT UMUM DAERAH SEHAT SENTOSA</h2>
+            <h3>INSTALASI PELAYANAN GIZI & DIETETIK</h3>
+            <p style="font-size:10pt; margin:2px 0;">Jl. Kesehatan No. 45 Yogyakarta | Telp: (0274) 555-0199 | Email: gizi@rsudsehatsentosa.go.id</p>
+          </div>
+
+          <h3 style="text-align:center; text-transform:uppercase; text-decoration:underline;">LAPORAN MONITORING TAKSIRAN VISUAL SISA MAKANAN (E-COMSTOCK)</h3>
+          <p style="text-align:center; font-size:10pt;">Tanggal Cetak: ${dateStr} &bull; Standar Pelayanan Minimal (SPM) Kemenkes RI: &le; 20%</p>
+
+          <h4>A. REKAPITULASI RATA-RATA SISA MAKANAN PER RUANGAN RAWAT INAP</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Ruangan</th>
+                <th>Pasien</th>
+                <th>Makanan Pokok</th>
+                <th>Lauk Hewani</th>
+                <th>Lauk Nabati</th>
+                <th>Sayur</th>
+                <th>Buah</th>
+                <th>Rata-rata Sisa</th>
+                <th>Status SPM (&le;20%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${roomRows}
+            </tbody>
+          </table>
+
+          <h4>B. RINCIAN PENGAMATAN PASIEN RAWAT INAP</h4>
+          <table style="font-size:9.5pt;">
+            <thead>
+              <tr>
+                <th>Kode</th>
+                <th>Ruang</th>
+                <th>Waktu</th>
+                <th>Makanan Pokok</th>
+                <th>Lauk Hewani</th>
+                <th>Lauk Nabati</th>
+                <th>Sayur</th>
+                <th>Buah</th>
+                <th>Rata Sisa</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${patientRows}
+            </tbody>
+          </table>
+
+          <br><br>
+          <table style="border:none; width:100%;">
+            <tr style="border:none;">
+              <td style="border:none; text-align:center; width:50%;">
+                Mengetahui,<br>
+                <b>Kepala Instalasi Gizi RS</b><br><br><br><br>
+                <u>dr. Hj. Ratna Sari, M.Gizi, Sp.GK</u><br>
+                NIP. 19820512 200801 2 007
+              </td>
+              <td style="border:none; text-align:center; width:50%;">
+                Yogyakarta, ${dateStr}<br>
+                <b>Petugas Gizi Pelaksana / Enumerator</b><br><br><br><br>
+                <u>Petugas Gizi RS</u><br>
+                Tenaga Nutrisionis Dietisien
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\ufeff', wordHTML], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Laporan_E-COMSTOCK_${new Date().toISOString().split('T')[0]}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Dokumen MS Word (.doc) berhasil diunduh!');
+    }
+
+    // EXPORT TO CSV
+    function exportToCSV() {
+      let csv = 'Kode Pasien,Ruang Perawatan,Waktu Makan,Tanggal,Petugas,Makanan Pokok,Skala Pokok (%),Lauk Hewani,Skala Hewani (%),Lauk Nabati,Skala Nabati (%),Sayur,Skala Sayur (%),Buah,Skala Buah (%),Rata-rata Sisa (%),Rata-rata Konsumsi (%),Kepatuhan SPM\n';
+
+      observations.forEach(p => {
+        const isOK = p.avgWaste <= 20 ? 'Sesuai SPM (<=20%)' : 'Melebihi SPM (>20%)';
+        const row = [
+          p.code,
+          `"${p.room}"`,
+          p.meal,
+          p.date,
+          `"${p.observer}"`,
+          `"${p.pokok.name}"`,
+          p.pokok.scale,
+          `"${p.hewani.name}"`,
+          p.hewani.scale,
+          `"${p.nabati.name}"`,
+          p.nabati.scale,
+          `"${p.sayur.name}"`,
+          p.sayur.scale,
+          `"${p.buah.name}"`,
+          p.buah.scale,
+          p.avgWaste,
+          p.avgConsumed,
+          `"${isOK}"`
+        ];
+        csv += row.join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Data_E-COMSTOCK_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Data CSV berhasil diunduh untuk Excel!');
+    }
+
+    // RESET TO DEMO DATA
+    function resetToDemoData() {
+      if (confirm('Kembalikan data ke kondisi simulasi awal demo?')) {
+        localStorage.removeItem(STORAGE_KEY_OBSERVATIONS);
+        observations = [...defaultInitialDemo];
+        localStorage.setItem(STORAGE_KEY_OBSERVATIONS, JSON.stringify(observations));
+        loadPatientToForm('P001');
+        renderAllReports();
+        renderPatientTable();
+        showToast('Data simulasi demo awal berhasil dipulihkan.');
+      }
+    }
+  </script>
+</body>
+</html>
